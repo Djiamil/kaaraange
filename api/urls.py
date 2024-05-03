@@ -9,5 +9,6 @@ urlpatterns = [
 
     # debut interval des urls qui conserne user
     path('users/', views.UserApiViews.as_view(), name='user-list-create'),
-    # fin intervale des url qui conserne le user
+    path('testesendsms/', views.TestSendSMS.as_view(), name='testesendsms'),
+    # fin intervale des url qui conserne le user 
 ]

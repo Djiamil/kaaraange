@@ -9,8 +9,13 @@ from .serializers import UserSerializer
 from django.contrib.auth.hashers import make_password
 from rest_framework.exceptions import ValidationError
 from django.contrib.auth import authenticate
-from .services.snede_opt_services import *
+from api.services.snede_opt_service import *
 from .services.user_service import *
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.tokens import AccessToken
+
+
 
 
 
@@ -55,30 +60,54 @@ class LoginViews(TokenObtainPairView):
         if not password:
             return Response({'error': 'Password is required'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Vérifier si l'utilisateur existe déjà dans la base de données
-        user = User.objects.filter(email=email).first()
+        try:
+            # Vérifier si l'utilisateur existe déjà dans la base de données
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            user = None
 
-        # Si l'utilisateur existe déjà et utilise un mot de passe, vérifier le mot de passe
-        if user and not registration_method:
-            authenticated_user = authenticate(request, email=email, password=password)
-            if authenticated_user is not None:
-                # Utilisateur authentifié, générer le token
-                return super().post(request, *args, **kwargs)
+        # Si l'utilisateur existe déjà, générer un token et retourner les informations de l'utilisateur
+        if user:
+            if not registration_method:
+                # Vérifier le mot de passe si l'utilisateur utilise un mot de passe
+                authenticated_user = authenticate(request, email=email, password=password)
+                if authenticated_user is not None:
+                    # Utilisateur authentifié, générer le token d'accès
+                    tokens = super().post(request, *args, **kwargs)
+                    access_token = AccessToken.for_user(user)
+                    serializer = UserSerializer(user)  # Utiliser le serializer pour sérialiser l'utilisateur
+                    return Response({'access': str(access_token), 'user': serializer.data}, status=status.HTTP_200_OK)
+                else:
+                    # Mot de passe incorrect
+                    return Response({'error': 'Invalid password'}, status=status.HTTP_400_BAD_REQUEST)
             else:
-                # Mot de passe incorrect
-                return Response({'error': 'Invalid password'}, status=status.HTTP_400_BAD_REQUEST)
+                # Utilisateur existant, générer le token d'accès et retourner les informations de l'utilisateur
+                access_token = AccessToken.for_user(user)
+                serializer = UserSerializer(user)  # Utiliser le serializer pour sérialiser l'utilisateur
+                return Response({'access': str(access_token), 'user': serializer.data}, status=status.HTTP_200_OK)
 
         # Si l'utilisateur n'existe pas et utilise une méthode de connexion externe
         elif registration_method in ['GOOGLE', 'FACEBOOK', 'APPLE']:
-            # Hacher le mot de passe
-            hashed_password = make_password(password)
-            # Créer un nouvel utilisateur dans la base de données avec le mot de passe haché
-            user = User.objects.create(email=email, registration_method=registration_method, password=hashed_password)
-            # Générer le token
-            return super().post(request, *args, **kwargs)
+            # Créer un nouvel utilisateur dans la base de données avec la méthode de connexion externe
+            user = User.objects.create(email=email, registration_method=registration_method)
+            # Générer le token d'accès et retourner les informations de l'utilisateur
+            access_token = AccessToken.for_user(user)
+            serializer = UserSerializer(user)  # Utiliser le serializer pour sérialiser l'utilisateur
+            return Response({'access': str(access_token), 'user': serializer.data}, status=status.HTTP_200_OK)
 
         else:
             # Email ou méthode d'enregistrement non valide
             return Response({'error': 'Invalid email or registration method'}, status=status.HTTP_400_BAD_REQUEST)
-    
+
+
+class TestSendSMS(generics.CreateAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def create(self, request, *args, **kwargs):
+        message = "Je vous envoie ce SMS pour permettre de valider votre inscription."
+        send_sms(request.data)  # Passer seulement request.data à la fonction
+        return Response({"message": "SMS envoyé avec succès !"}, status=status.HTTP_200_OK)
+
+
+
 

@@ -1,0 +1,23 @@
+# Fichiers spécifiques à l'environnement de développement
+.vscode/
+.env
+.pytest_cache/
+__pycache__/
+
+# Fichiers générés automatiquement
+/staticfiles/
+/media/
+
+# Fichiers de configuration locaux
+db.sqlite3
+
+# Répertoire virtuel Python
+/venv/
+
+# Fichiers de sauvegarde
+*.bak
+
+# Fichiers d'édition et de système d'exploitation
+*~
+.DS_Store
+Thumbs.db

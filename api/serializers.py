@@ -26,5 +26,5 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = '__all__'
-    
+        # Exclure le champ 'password' du serializer
+        exclude = ['password']

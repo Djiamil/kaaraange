@@ -44,23 +44,19 @@ class CustomUserManager(BaseUserManager):
         return self.create_user(email, password, **extra_fields)
 
 
-
-
+# la model user que vons heriter tous les autre model de type user comme parent child et tuteur ...
 class User(AbstractBaseUser, PermissionsMixin, SafeDeleteModel):
     slug = models.SlugField(default=uuid.uuid1)
     email = models.EmailField(unique=True)
-    username = models.CharField(max_length=1000, unique=True, null=True, blank=True)
     is_active = models.BooleanField(default=True)
     is_archive = models.BooleanField(default=False)
 
-    password_reset_count = models.DecimalField(max_digits=10, decimal_places=0, null=True, blank=True, default=0)
     user_type = models.CharField(max_length=50, choices=USER_TYPES, default='PARENT')
     accepted_terms = models.BooleanField(default=False, verbose_name="Accepté les conditions d'utilisation")
     registration_method = models.CharField(max_length=50, choices=REGISTRATION_METHOD, default='normal')
     otp_token = models.CharField(max_length=6, null=True, blank=True, verbose_name="Token OTP")
     gender = models.CharField(max_length=10, null=True, blank=True, verbose_name="Genre")
 
-    # Utilisez le gestionnaire personnalisé
     objects = CustomUserManager()
 
     _safedelete_policy = SOFT_DELETE_CASCADE
@@ -69,9 +65,44 @@ class User(AbstractBaseUser, PermissionsMixin, SafeDeleteModel):
     def __str__(self):
         return self.email
 
-    # Implémentez la méthode get_by_natural_key pour le manager personnalisé
     def get_by_natural_key(self, email):
         return self.get(email=email)
+
+# Le model parent qui represente les utilisateur de type parent
+class Parent(User):
+    adresse = models.CharField(max_length=255, blank=True, null=True)
+    numero_telephone = models.CharField(max_length=20)
+
+
+# le model child qui herite aussi du models est reprensente les utilisteur de type enfant
+class Child(User):
+    parent_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='children')
+    date_de_naissance = models.DateField()
+    type_appareil = models.CharField(max_length=100)
+    numeros_urgences = models.TextField()
+    ecole = models.CharField(max_length=100, blank=True, null=True)
+    allergies = models.TextField(blank=True, null=True)
+
+# Le model pour enregistre les code otp qui serons envoyer comme verification du numero lors de l'inscription du parent
+class OTP(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    otp_code = models.CharField(max_length=6)
+
+    def __str__(self):
+        return f"OTP pour {self.user.username}"
+    
+class SMS(models.Model):
+    accountid = models.CharField(max_length=255)
+    password = models.CharField(max_length=255)
+    sender = models.CharField(max_length=11)
+    ret_id = models.CharField(max_length=255, blank=True, null=True)
+    ret_url = models.URLField(blank=True, null=True)
+    start_date = models.CharField(max_length=255, blank=True, null=True)
+    start_time = models.CharField(max_length=255, blank=True, null=True)
+    stop_time = models.CharField(max_length=255, blank=True, null=True)
+    text = models.TextField()
+    to = models.CharField(max_length=255)
+
     
 
 
