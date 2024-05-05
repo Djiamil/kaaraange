@@ -8,12 +8,6 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 
 
-
-
-
-
-
-
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)
@@ -27,4 +21,11 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         # Exclure le champ 'password' du serializer
-        exclude = ['password']
+        # exclude = ['password']
+        fields = '__all__'
+
+
+class PendingUserGetSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PendingUser
+        fields = '__all__'

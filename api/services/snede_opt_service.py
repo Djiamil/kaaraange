@@ -12,23 +12,21 @@ from django.utils import timezone
 
 
 # Fonction pour generer un code otp aleatoir de six chiffre
-def generate_otp(user, phone_number):
-    otp_code = ''.join(random.choices(string.digits, k=6)) 
-    OTP.objects.create(user=user, otp_code=otp_code, phone_number=phone_number)
+def generate_otp(pending_user=None):
+    otp_code = ''.join(random.choices(string.digits, k=4))
+    otp = OTP.objects.create(pending_user=pending_user,otp_code=otp_code)
     return otp_code
-
-def send_sms(data):
+# gere les envoie sms des code otp et autre recoie numero et message
+def send_sms(to_phone_number, text):
     try:
-        # Construire le payload pour l'API Africa Mobile
+        # Informations fixes pour l'API Africa Mobile
         payload = {
-            "accountid": data["accountid"],
-            "password": data["password"],
-            "sender": data["sender"],
-            "ret_id": data.get("ret_id"),
-            "ret_url": data.get("ret_url"),
-            "text": data["text"],
-            "to": data["to"],
-            # Vous pouvez ajouter d'autres champs ici comme start_date, start_time, stop_time
+            "accountid": "KAARAANGE",
+            "password": "HdB9r878DgS7m",
+            "sender": "KAARAANGE",
+            "ret_id": "Push_1",
+            "text": text,
+            "to": [{"ret_id_1": to_phone_number}]
         }
 
         # Appel à l'API Africa Mobile
@@ -37,14 +35,12 @@ def send_sms(data):
         # Vérification de la réponse
         if response.status_code == 200:
             SMS.objects.create(
-                accountid=data["accountid"],
-                password=data["password"],
-                sender=data["sender"],
-                ret_id=data.get("ret_id"),
-                ret_url=data.get("ret_url"),
-                text=data["text"],
-                to=data["to"],
-                sent_at=timezone.now()
+                accountid="KAARAANGE",
+                password="HdB9r878DgS7m",
+                sender="KAARAANGE",
+                ret_id="Push_1",
+                text=text,
+                to=to_phone_number,
             )
             return Response({"message": "SMS envoyé avec succès"}, status=status.HTTP_200_OK)
         else:
@@ -52,5 +48,41 @@ def send_sms(data):
     except requests.RequestException as e:
         return Response({"error": f"Erreur lors de la requête vers l'API Africa Mobile : {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+# def send_sms(data):
+#     try:
+#         # Construire le payload pour l'API Africa Mobile
+#         payload = {
+#             "accountid": data["accountid"],
+#             "password": data["password"],
+#             "sender": data["sender"],
+#             "ret_id": data.get("ret_id"),
+#             "ret_url": data.get("ret_url"),
+#             "text": data["text"],
+#             "to": data["to"],
+#             # Vous pouvez ajouter d'autres champs ici comme start_date, start_time, stop_time
+#         }
+
+#         # Appel à l'API Africa Mobile
+#         response = requests.post('https://lamsms.lafricamobile.com/api', json=payload)
+
+#         # Vérification de la réponse
+#         if response.status_code == 200:
+#             SMS.objects.create(
+#                 accountid=data["accountid"],
+#                 password=data["password"],
+#                 sender=data["sender"],
+#                 ret_id=data.get("ret_id"),
+#                 ret_url=data.get("ret_url"),
+#                 text=data["text"],
+#                 to=data["to"],
+#                 sent_at=timezone.now()
+#             )
+#             return Response({"message": "SMS envoyé avec succès"}, status=status.HTTP_200_OK)
+#         else:
+#             return Response({"error": "Erreur lors de l'envoi du SMS"}, status=status.HTTP_400_BAD_REQUEST)
+#     except requests.RequestException as e:
+#         return Response({"error": f"Erreur lors de la requête vers l'API Africa Mobile : {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+
+# minguembengue85@gmail.com Nbengue281

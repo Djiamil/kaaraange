@@ -14,19 +14,13 @@ from .services.user_service import *
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import AccessToken
-
-
-
-
-
+ 
 
 # la views de creation de compte utilisateur
-
 class UserApiViews(generics.ListCreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     
-
     def post(self, request, *args, **kwargs):
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
@@ -76,7 +70,7 @@ class LoginViews(TokenObtainPairView):
                     tokens = super().post(request, *args, **kwargs)
                     access_token = AccessToken.for_user(user)
                     serializer = UserSerializer(user)  # Utiliser le serializer pour sérialiser l'utilisateur
-                    return Response({'access': str(access_token), 'user': serializer.data}, status=status.HTTP_200_OK)
+                    return Response({'token': str(access_token), 'user': serializer.data}, status=status.HTTP_200_OK)
                 else:
                     # Mot de passe incorrect
                     return Response({'error': 'Invalid password'}, status=status.HTTP_400_BAD_REQUEST)
@@ -84,16 +78,16 @@ class LoginViews(TokenObtainPairView):
                 # Utilisateur existant, générer le token d'accès et retourner les informations de l'utilisateur
                 access_token = AccessToken.for_user(user)
                 serializer = UserSerializer(user)  # Utiliser le serializer pour sérialiser l'utilisateur
-                return Response({'access': str(access_token), 'user': serializer.data}, status=status.HTTP_200_OK)
+                return Response({'token': str(access_token), 'user': serializer.data}, status=status.HTTP_200_OK)
 
         # Si l'utilisateur n'existe pas et utilise une méthode de connexion externe
         elif registration_method in ['GOOGLE', 'FACEBOOK', 'APPLE']:
             # Créer un nouvel utilisateur dans la base de données avec la méthode de connexion externe
-            user = User.objects.create(email=email, registration_method=registration_method)
+            user = User.objects.create(email=email, registration_method=registration_method,password=make_password(password))
             # Générer le token d'accès et retourner les informations de l'utilisateur
             access_token = AccessToken.for_user(user)
             serializer = UserSerializer(user)  # Utiliser le serializer pour sérialiser l'utilisateur
-            return Response({'access': str(access_token), 'user': serializer.data}, status=status.HTTP_200_OK)
+            return Response({'token': str(access_token), 'user': serializer.data}, status=status.HTTP_200_OK)
 
         else:
             # Email ou méthode d'enregistrement non valide
@@ -107,7 +101,3 @@ class TestSendSMS(generics.CreateAPIView):
         message = "Je vous envoie ce SMS pour permettre de valider votre inscription."
         send_sms(request.data)  # Passer seulement request.data à la fonction
         return Response({"message": "SMS envoyé avec succès !"}, status=status.HTTP_200_OK)
-
-
-
-

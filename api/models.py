@@ -83,15 +83,30 @@ class Child(User):
     ecole = models.CharField(max_length=100, blank=True, null=True)
     allergies = models.TextField(blank=True, null=True)
 
+# Model de creation temporel des utilisateur en attendant la validation de l'otp 
+class PendingUser(models.Model):
+    slug = models.SlugField(default=uuid.uuid1)
+    prenom = models.CharField(max_length=100)
+    telephone = models.CharField(max_length=15)
+    adresse = models.CharField(max_length=255)
+    condition_utilisation = models.BooleanField(default=False)
+    mot_de_passe = models.CharField(max_length=255)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
+
+    def __str__(self):
+        return self.prenom
+
 # Le model pour enregistre les code otp qui serons envoyer comme verification du numero lors de l'inscription du parent
 class OTP(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    slug = models.SlugField(default=uuid.uuid1)
+    pending_user = models.OneToOneField(PendingUser, on_delete=models.CASCADE, default=None)
     otp_code = models.CharField(max_length=6)
 
     def __str__(self):
         return f"OTP pour {self.user.username}"
     
 class SMS(models.Model):
+    slug = models.SlugField(default=uuid.uuid1)
     accountid = models.CharField(max_length=255)
     password = models.CharField(max_length=255)
     sender = models.CharField(max_length=11)
@@ -103,9 +118,5 @@ class SMS(models.Model):
     text = models.TextField()
     to = models.CharField(max_length=255)
 
-    
 
-
-
-
-# super admin kaaraange@gmail.com
+# super admin kaaraange@gmail.com 
