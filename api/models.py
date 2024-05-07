@@ -48,15 +48,16 @@ class CustomUserManager(BaseUserManager):
 class User(AbstractBaseUser, PermissionsMixin, SafeDeleteModel):
     slug = models.SlugField(default=uuid.uuid1)
     email = models.EmailField(unique=True)
+    password = models.CharField(max_length=255)
+    prenom = models.CharField(max_length=100)
+    nom = models.CharField(max_length=100)
     is_active = models.BooleanField(default=True)
     is_archive = models.BooleanField(default=False)
-
     user_type = models.CharField(max_length=50, choices=USER_TYPES, default='PARENT')
     accepted_terms = models.BooleanField(default=False, verbose_name="Accepté les conditions d'utilisation")
     registration_method = models.CharField(max_length=50, choices=REGISTRATION_METHOD, default='normal')
     otp_token = models.CharField(max_length=6, null=True, blank=True, verbose_name="Token OTP")
     gender = models.CharField(max_length=10, null=True, blank=True, verbose_name="Genre")
-
     objects = CustomUserManager()
 
     _safedelete_policy = SOFT_DELETE_CASCADE
@@ -71,27 +72,50 @@ class User(AbstractBaseUser, PermissionsMixin, SafeDeleteModel):
 # Le model parent qui represente les utilisateur de type parent
 class Parent(User):
     adresse = models.CharField(max_length=255, blank=True, null=True)
-    numero_telephone = models.CharField(max_length=20)
+    telephone = models.CharField(max_length=20, null=True)
 
 
-# le model child qui herite aussi du models est reprensente les utilisteur de type enfant
+
+# le model child qui herite aussi du models user est reprensente les utilisteur de type enfant
 class Child(User):
-    parent_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='children')
     date_de_naissance = models.DateField()
     type_appareil = models.CharField(max_length=100)
     numeros_urgences = models.TextField()
     ecole = models.CharField(max_length=100, blank=True, null=True)
     allergies = models.TextField(blank=True, null=True)
 
+# le model ParentChildLink nous permetrat de lier le parent et l'enfant par le qrcod qui sera reunis 
+class ParentChildLink(models.Model):
+    slug = models.SlugField(default=uuid.uuid1)
+    parent = models.ForeignKey(Parent, on_delete=models.CASCADE, blank=True, null=True)
+    child = models.ForeignKey(Child, on_delete=models.CASCADE)
+    qr_code = models.TextField(blank=True, null=True)  # Modifier le champ qr_code
+
+
+    def __str__(self):
+        return f"{self.parent} - {self.child}"
+    
 # Model de creation temporel des utilisateur en attendant la validation de l'otp 
 class PendingUser(models.Model):
     slug = models.SlugField(default=uuid.uuid1)
+    email = models.EmailField(unique=True, default="")
+    password = models.CharField(max_length=255)
     prenom = models.CharField(max_length=100)
-    telephone = models.CharField(max_length=15)
-    adresse = models.CharField(max_length=255)
-    condition_utilisation = models.BooleanField(default=False)
-    mot_de_passe = models.CharField(max_length=255)
-    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
+    nom = models.CharField(max_length=100)
+    is_active = models.BooleanField(default=True)
+    user_type = models.CharField(max_length=50, choices=USER_TYPES, default='PARENT')
+    accepted_terms = models.BooleanField(default=False, verbose_name="Accepté les conditions d'utilisation")
+    registration_method = models.CharField(max_length=50, choices=REGISTRATION_METHOD, default='normal')
+    otp_token = models.CharField(max_length=6, null=True, blank=True, verbose_name="Token OTP")
+    gender = models.CharField(max_length=10, null=True, blank=True, verbose_name="Genre")
+    telephone = models.CharField(max_length=15, null=True, blank=True)
+    adresse = models.CharField(max_length=255, null=True, blank=True)
+    date_de_naissance = models.DateField(null=True, blank=True)
+    is_archive = models.BooleanField(default=False, verbose_name="Accepté les conditions d'utilisation")
+
+    class Meta:
+        verbose_name_plural = "Utilisateurs en attente"
+
 
     def __str__(self):
         return self.prenom
@@ -118,5 +142,4 @@ class SMS(models.Model):
     text = models.TextField()
     to = models.CharField(max_length=255)
 
-
-# super admin kaaraange@gmail.com 
+# super admin kaaraange@gmail.com gthub prof edacy Darcia0001@gmail.com

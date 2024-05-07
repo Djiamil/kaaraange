@@ -1,5 +1,4 @@
 
-
 from api.models import *
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
@@ -20,7 +19,6 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        # Exclure le champ 'password' du serializer
         # exclude = ['password']
         fields = '__all__'
 
@@ -29,3 +27,29 @@ class PendingUserGetSerializer(serializers.ModelSerializer):
     class Meta:
         model = PendingUser
         fields = '__all__'
+
+class OtpGetSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OTP
+        fields = '__all__'
+
+class ChildSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Child
+        fields = '__all__'
+
+class ParentChildLinkSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ParentChildLink
+        fields = ['id','slug', 'parent', 'child', 'qr_code']
+
+
+class ChildSerializerDetail(serializers.ModelSerializer):
+    parent_child_link = ParentChildLinkSerializer(read_only=True, source='parentchildlink_set', many=True)
+    
+    class Meta:
+        model = Child
+        fields = ['id', 'slug', 'email', 'prenom', 'nom', 'is_active', 'is_archive',
+                  'user_type', 'accepted_terms', 'registration_method', 'otp_token',
+                  'gender', 'date_de_naissance', 'type_appareil', 'numeros_urgences',
+                  'ecole', 'allergies', 'parent_child_link']
