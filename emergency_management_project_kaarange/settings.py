@@ -94,11 +94,11 @@ AUTH_USER_MODEL = 'api.User'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'kaaraange',
-        'USER': 'djiamil',
-        'PASSWORD': 'djiamil',
-        'HOST': 'localhost',  # ou l'adresse IP de votre serveur PostgreSQL
-        'PORT': '5432',  # par défaut, le port PostgreSQL est 5432 
+        'NAME': 'oasmdofe',  # Nom de votre base de données sur ElephantSQL
+        'USER': 'oasmdofe',  # Nom d'utilisateur de votre base de données sur ElephantSQL
+        'PASSWORD': 'Vpa94es3vz_-SFs298ivktk6k53_DCHv',  # Mot de passe de votre base de données sur ElephantSQL
+        'HOST': 'bubble.db.elephantsql.com',  # Adresse de votre base de données sur ElephantSQL
+        'PORT': '5432',  # Port de votre base de données sur ElephantSQL
     }
 }
 
