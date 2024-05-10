@@ -123,7 +123,7 @@ class PendingUser(models.Model):
 # Le model pour enregistre les code otp qui serons envoyer comme verification du numero lors de l'inscription du parent
 class OTP(models.Model):
     slug = models.SlugField(default=uuid.uuid1)
-    pending_user = models.OneToOneField(PendingUser, on_delete=models.CASCADE, default=None)
+    pending_user = models.OneToOneField(PendingUser,null=True, blank=True, on_delete=models.CASCADE, default=None)
     otp_code = models.CharField(max_length=6)
 
     def __str__(self):

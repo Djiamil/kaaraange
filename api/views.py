@@ -15,6 +15,8 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import AccessToken
 import io
+from django.http import JsonResponse
+
  
 
 # la views de creation de compte utilisateur
@@ -127,3 +129,79 @@ class GetQRCode(generics.RetrieveAPIView):
                 return HttpResponse(f"Une erreur s'est produite : {e}", status=500)
         else:
             return HttpResponse("Le QR code n'existe pas pour cet objet.", status=404)
+
+# views pour envoyer le code otp de verification du nemero pour les mot de passe oublier
+class SendOtpUserChangePassword(generics.GenericAPIView):
+    def post(self, request, *args, **kwargs):
+        to_phone_number = request.data.get('telephone')
+        
+        if not to_phone_number:
+            return JsonResponse({'error': 'Numéro de téléphone manquant'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            parent = Parent.objects.get(telephone=to_phone_number)
+        except Parent.DoesNotExist:
+            return JsonResponse({'error': 'Parent non trouvé'}, status=status.HTTP_404_NOT_FOUND)
+
+        otp_code = generate_otp()
+        text = f"Votre code de vérification pour changer le mot de passe est : {otp_code}"
+        send_sms(to_phone_number, text)
+
+        parent.otp_token = otp_code
+        parent.save()
+
+        return JsonResponse({'message': 'OTP envoyé avec succès'}, status=status.HTTP_200_OK)
+# views pour la confirmation de l'otp pour la modificatiion du password
+class ConfirmOtpUserForPassword(generics.GenericAPIView):
+    serializer_class = UserSerializer
+
+    def post(self, request, *args, **kwargs):
+        otp_code = request.data.get('otp_code')
+        
+        if not otp_code:
+            return JsonResponse({'error': 'Code OTP manquant'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user = User.objects.get(otp_token=otp_code)
+        except User.DoesNotExist:
+            return JsonResponse({'error': 'Code de confirmation incorecte'}, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = self.get_serializer(user)
+        return Response(serializer.data)
+
+# views pour la modification du password de l'utlisateur
+class ChangePasswordUser(generics.GenericAPIView):
+    serializer_class = UserSerializer
+
+    def post(self, request, *args, **kwargs):
+        slug = request.data.get('slug')
+        password1 = request.data.get('password1')
+        password2 = request.data.get('password2')
+
+        if not password1 or not password2:
+            return JsonResponse({'error': 'Veillez renseignez le password1 et le password2'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if password1 != password2:
+            return JsonResponse({'error': 'Les mots de passe ne correspondent pas'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(slug=slug)
+        except User.DoesNotExist:
+            return JsonResponse({'error': 'Utilisateur non trouvé'}, status=status.HTTP_404_NOT_FOUND)
+
+        user.password = make_password(password1)
+        user.save()
+
+        return JsonResponse({'message': 'Votre mot de passe a été modifié avec succès'}, status=status.HTTP_200_OK)
+
+
+
+
+        
+
+
+
+
+
+
+

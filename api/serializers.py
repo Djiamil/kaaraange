@@ -53,3 +53,9 @@ class ChildSerializerDetail(serializers.ModelSerializer):
                   'user_type', 'accepted_terms', 'registration_method', 'otp_token',
                   'gender', 'date_de_naissance', 'type_appareil', 'numeros_urgences',
                   'ecole', 'allergies', 'parent_child_link']
+        
+class RetrieveAPIView(serializers.ModelSerializer):
+        
+        class Meta:
+            model = Parent
+            fields = '__all__'

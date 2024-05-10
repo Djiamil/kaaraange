@@ -11,8 +11,11 @@ urlpatterns = [
 
 
     # debut interval des urls qui conserne user
-    path('users/', views.UserApiViews.as_view(), name='user-list-create'),
+    path('users/', views.UserApiViews.as_view(), name='user-list-create'), 
     path('testesendsms/', views.TestSendSMS.as_view(), name='testesendsms'),
+    path('otp_password_user/', views.SendOtpUserChangePassword.as_view(), name='otp_password_user'),
+    path('confirm__otp_password_user/', views.ConfirmOtpUserForPassword.as_view(), name='confirm_otp_password_user'),
+    path('change_password/', views.ChangePasswordUser.as_view(), name='ChangePasswordUser'),
     # fin intervale des url qui conserne le user 
 
     # debut des routes qui concerne le parent 
