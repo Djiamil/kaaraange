@@ -151,6 +151,7 @@ class SendOtpUserChangePassword(generics.GenericAPIView):
         parent.save()
 
         return JsonResponse({'message': 'OTP envoyé avec succès'}, status=status.HTTP_200_OK)
+
 # views pour la confirmation de l'otp pour la modificatiion du password
 class ConfirmOtpUserForPassword(generics.GenericAPIView):
     serializer_class = UserSerializer

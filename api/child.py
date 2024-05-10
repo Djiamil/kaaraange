@@ -14,6 +14,8 @@ from .services.user_service import *
 from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
 import base64
+from django.utils.translation import gettext as _
+from django.db.utils import IntegrityError
 
 
 # views pour l'inscription de l'enfant
@@ -48,21 +50,34 @@ class ChildRegister(generics.CreateAPIView):
 
 
 # permet de relier le parent a l'nfant  dans le model parent link to child
-class ChildDetails(generics.CreateAPIView):
+class ParendChildLink(generics.CreateAPIView):
     def post(self, request, *args, **kwargs):
-        slug = request.data.get('slug', None)
-        if slug:
+        slug_child = request.data.get('slug_child', None)
+        slug_parent = request.data.get('slug_parent', None)
+        relation = request.data.get('relation', None)
+        
+        if slug_child:
             try:
-                child = Child.objects.get(slug=slug)
-                # Recherche de l'objet ParentChildLink associé à l'enfant
+                child = Child.objects.get(slug=slug_child)
+                parent = Parent.objects.get(slug=slug_parent)  
+                
                 try:
-                    parent_child_link = ParentChildLink.objects.get(child=child)
-                    # Mettre à jour l'objet ParentChildLink avec les parents de l'enfant
-                    parent_child_link.parent.add(*request.user.parents.all())
-                    return Response({'success': 'Parents ajoutés avec succès à l\'enfant'})
-                except ParentChildLink.DoesNotExist:
-                    return Response({'error': 'Aucun ParentChildLink trouvé pour cet enfant'}, status=404)
+                    family_member, created = FamilyMember.objects.get_or_create(
+                        parent=parent,
+                        child=child,
+                        relation=relation
+                    )
+                    if created:
+                        return Response({'success': _('Parents ajoutés avec succès à l\'enfant')})
+                    else:
+                        return Response({'error': _('La relation spécifiée n\'est pas valide')}, status=400)
+                    
+                except IntegrityError:
+                    return Response({'error': _('La relation spécifiée n\'est pas valide')}, status=400)
+                
             except Child.DoesNotExist:
-                return Response({'error': 'Aucun enfant trouvé avec ce slug'}, status=404)
+                return Response({'error': _('Aucun enfant trouvé avec ce slug')}, status=404)
+            except Parent.DoesNotExist:
+                return Response({'error': _('Aucun parent trouvé avec ce slug')}, status=404)
         else:
-            return Response({'error': 'Slug non fourni'}, status=400)
+            return Response({'error': _('Slug non fourni')}, status=400)

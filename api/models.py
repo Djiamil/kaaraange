@@ -17,6 +17,7 @@ USER_TYPES = (
     ('CHILD', 'CHILD'),
     ('TUTEUR', 'TUTEUR'),
 )
+
 GOOGLE  = 'google'
 FACEBOOK = 'facebook'
 APPLE = 'apple'
@@ -27,6 +28,21 @@ REGISTRATION_METHOD = (
     ('APPLE', 'APPLE'),
     ('NORMAL', 'NORMAL'),
 )
+
+PAPA = 'papa'
+MAMAN = 'maman'
+TANTE = 'tante'
+ONCLE = 'oncle'
+GRAND_MERE = 'grand-mere'
+GRAND_PERE = 'grand-pere'
+RELATIONSHIP_CHOICES = [
+    (PAPA, 'Papa'),
+    (MAMAN, 'Maman'),
+    (TANTE, 'Tante'),
+    (ONCLE, 'Oncle'),
+    (GRAND_MERE, 'Grand-mère'),
+    (GRAND_PERE, 'Grand-père'),
+]
 
 
 class CustomUserManager(BaseUserManager):
@@ -84,16 +100,27 @@ class Child(User):
     ecole = models.CharField(max_length=100, blank=True, null=True)
     allergies = models.TextField(blank=True, null=True)
 
-# le model ParentChildLink nous permetrat de lier le parent et l'enfant par le qrcod qui sera reunis 
+# le model ParentChildLink nous permetrat maintenant juste de relier un enfant a un qrcode
 class ParentChildLink(models.Model):
     slug = models.SlugField(default=uuid.uuid1)
-    parent = models.ForeignKey(Parent, on_delete=models.CASCADE, blank=True, null=True)
+    # parent = models.ForeignKey(Parent, on_delete=models.CASCADE, blank=True, null=True)
     child = models.ForeignKey(Child, on_delete=models.CASCADE)
     qr_code = models.TextField(blank=True, null=True)  # Modifier le champ qr_code
 
 
     def __str__(self):
         return f"{self.parent} - {self.child}"
+
+
+class FamilyMember(models.Model):
+    slug = models.SlugField(default=uuid.uuid1)
+    relation = models.CharField(max_length=100, choices=RELATIONSHIP_CHOICES)
+    parent = models.ForeignKey(Parent, on_delete=models.CASCADE, blank=True, null=True)
+    child = models.ForeignKey(Child, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"{self.relation}: {self.parent} - {self.child}"
+
     
 # Model de creation temporel des utilisateur en attendant la validation de l'otp 
 class PendingUser(models.Model):

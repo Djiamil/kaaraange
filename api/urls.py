@@ -23,8 +23,9 @@ urlpatterns = [
     path('parent/confirm_otp/', parent.ConfirmRegistration.as_view(), name='ConfirmRegistration'),
     # fin des routes qui concerne le parent
 
-    # debut des routes pour l'enfant 
+    # debut des routes pour l'enfant  
     path('childs/', child.ChildRegister.as_view(), name='ConfirmRegistration'),
+    path('parent_child_link/', child.ParendChildLink.as_view(), name='parent_child_link'),
     # fin des routes qui conserne l'enfant 
 
     # les url sur le model qui link le parent au child
