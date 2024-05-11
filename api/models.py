@@ -121,7 +121,7 @@ class FamilyMember(models.Model):
     def __str__(self):
         return f"{self.relation}: {self.parent} - {self.child}"
 
-    
+
 # Model de creation temporel des utilisateur en attendant la validation de l'otp 
 class PendingUser(models.Model):
     slug = models.SlugField(default=uuid.uuid1)
