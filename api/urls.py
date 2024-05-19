@@ -2,6 +2,8 @@ from django.urls import path
 from . import views
 from . import parent
 from . import child
+from django.urls import re_path
+
 
 urlpatterns = [
 
@@ -26,6 +28,10 @@ urlpatterns = [
     # debut des routes pour l'enfant  
     path('childs/', child.ChildRegister.as_view(), name='ConfirmRegistration'),
     path('parent_child_link/', child.ParendChildLink.as_view(), name='parent_child_link'),
+    # path('child/<slug:slug>/', child.ChildDashboard, name='child_dashboard'),
+    path('child/<slug:slug>/', child.childDashbord.as_view(), name='child_dashboard'),
+
+
     # fin des routes qui conserne l'enfant 
 
     # les url sur le model qui link le parent au child

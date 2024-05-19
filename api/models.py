@@ -56,6 +56,7 @@ class CustomUserManager(BaseUserManager):
         return user
 
     def create_superuser(self, email, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)  # Définition de is_staff sur True
         extra_fields.setdefault('is_superuser', True)
         return self.create_user(email, password, **extra_fields)
 
@@ -69,6 +70,7 @@ class User(AbstractBaseUser, PermissionsMixin, SafeDeleteModel):
     nom = models.CharField(max_length=100)
     is_active = models.BooleanField(default=True)
     is_archive = models.BooleanField(default=False)
+    is_staff = models.BooleanField(default=False)
     user_type = models.CharField(max_length=50, choices=USER_TYPES, default='PARENT')
     accepted_terms = models.BooleanField(default=False, verbose_name="Accepté les conditions d'utilisation")
     registration_method = models.CharField(max_length=50, choices=REGISTRATION_METHOD, default='normal')
@@ -107,10 +109,8 @@ class ParentChildLink(models.Model):
     child = models.ForeignKey(Child, on_delete=models.CASCADE)
     qr_code = models.TextField(blank=True, null=True)  # Modifier le champ qr_code
 
-
     def __str__(self):
-        return f"{self.parent} - {self.child}"
-
+        return f"{self.child} - {self.child}"
 
 class FamilyMember(models.Model):
     slug = models.SlugField(default=uuid.uuid1)
@@ -154,7 +154,10 @@ class OTP(models.Model):
     otp_code = models.CharField(max_length=6)
 
     def __str__(self):
-        return f"OTP pour {self.user.username}"
+        if self.pending_user:
+            return f"OTP pour {self.pending_user.email}"
+        else:
+            return "OTP sans utilisateur associé"
     
 class SMS(models.Model):
     slug = models.SlugField(default=uuid.uuid1)

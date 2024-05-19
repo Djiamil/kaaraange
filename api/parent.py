@@ -39,13 +39,16 @@ class parentRegister(generics.CreateAPIView):
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-    def delete(self, request):
-        parent = Parent.objects.all()
-        return Response("je suis dans la methode delete")
+class deleteOrUpdateParent(generics.CreateAPIView):
+        def delete(self, request):
+            parent = Parent.objects.all()
+            parent.delete()
+            return Response("parent successfully deleted")
     
-    def update(self, request):
-        parent = Parent.objects.all()
-        return Response("Je suis dans la methode update")
+        def update(self, request):
+            parent = Parent.objects.all()
+            
+            return Response("Je suis dans la methode update")
 
 # confimation de l'inscription du parent apres le saisi de l'otp
 class ConfirmRegistration(generics.CreateAPIView):
@@ -60,7 +63,7 @@ class ConfirmRegistration(generics.CreateAPIView):
         pending_user = otp.pending_user
         if pending_user is None:
             return Response({'error': 'Aucun utilisateur en attente de confirmation'}, status=status.HTTP_400_BAD_REQUEST)
-        user = Parent.objects.create_user(
+        user = Parent.objects.create(
             telephone=pending_user.telephone,
             email = pending_user.email,
             prenom=pending_user.prenom,

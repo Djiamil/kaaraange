@@ -16,6 +16,8 @@ from rest_framework.pagination import PageNumberPagination
 import base64
 from django.utils.translation import gettext as _
 from django.db.utils import IntegrityError
+from django.shortcuts import render, get_object_or_404
+
 
 
 # views pour l'inscription de l'enfant
@@ -81,3 +83,20 @@ class ParendChildLink(generics.CreateAPIView):
                 return Response({'error': _('Aucun parent trouvé avec ce slug')}, status=404)
         else:
             return Response({'error': _('Slug non fourni')}, status=400)
+
+# views pour retourner tous les informations de l'utilisateur enfant pour son dashbord
+class childDashbord(generics.RetrieveAPIView):
+    queryset = Child.objects.all()
+    serializer_class = ChildSerializerDetail
+    lookup_field = 'slug'
+
+    def get(self, request, *args, **kwargs):
+        slug = self.kwargs.get('slug')
+        child = get_object_or_404(Child, slug=slug)
+        child_data_list = []  # Renamed variable to avoid conflict
+
+        # Append child data to the list
+        child_data_list.append({'child': ChildSerializerDetail(child).data,
+                                })
+        return Response({'child': child_data_list})
+

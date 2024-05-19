@@ -37,11 +37,12 @@ class ChildSerializer(serializers.ModelSerializer):
     class Meta:
         model = Child
         fields = '__all__'
+        lookup_field = 'slug'
 
 class ParentChildLinkSerializer(serializers.ModelSerializer):
     class Meta:
         model = ParentChildLink
-        fields = ['id','slug', 'parent', 'child', 'qr_code']
+        fields = ['id','slug', 'child', 'qr_code']
 
 
 class ChildSerializerDetail(serializers.ModelSerializer):
