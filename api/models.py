@@ -29,20 +29,20 @@ REGISTRATION_METHOD = (
     ('NORMAL', 'NORMAL'),
 )
 
-PAPA = 'papa'
-MAMAN = 'maman'
-TANTE = 'tante'
-ONCLE = 'oncle'
-GRAND_MERE = 'grand-mere'
-GRAND_PERE = 'grand-pere'
-RELATIONSHIP_CHOICES = [
-    (PAPA, 'Papa'),
-    (MAMAN, 'Maman'),
-    (TANTE, 'Tante'),
-    (ONCLE, 'Oncle'),
-    (GRAND_MERE, 'Grand-mère'),
-    (GRAND_PERE, 'Grand-père'),
-]
+# PAPA = 'papa'
+# MAMAN = 'maman'
+# TANTE = 'tante'
+# ONCLE = 'oncle'
+# GRAND_MERE = 'grand-mere'
+# GRAND_PERE = 'grand-pere'
+# RELATIONSHIP_CHOICES = [
+#     (PAPA, 'Papa'),
+#     (MAMAN, 'Maman'),
+#     (TANTE, 'Tante'),
+#     (ONCLE, 'Oncle'),
+#     (GRAND_MERE, 'Grand-mère'),
+#     (GRAND_PERE, 'Grand-père'),
+# ]
 
 
 class CustomUserManager(BaseUserManager):
@@ -65,6 +65,7 @@ class CustomUserManager(BaseUserManager):
 class User(AbstractBaseUser, PermissionsMixin, SafeDeleteModel):
     slug = models.SlugField(default=uuid.uuid1)
     email = models.EmailField(unique=True)
+    phone_number = models.CharField(max_length=15, unique=True, null=True, blank=True)
     password = models.CharField(max_length=255)
     prenom = models.CharField(max_length=100)
     nom = models.CharField(max_length=100)
@@ -80,6 +81,7 @@ class User(AbstractBaseUser, PermissionsMixin, SafeDeleteModel):
 
     _safedelete_policy = SOFT_DELETE_CASCADE
     USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['phone_number']
 
     def __str__(self):
         return self.email
@@ -90,8 +92,6 @@ class User(AbstractBaseUser, PermissionsMixin, SafeDeleteModel):
 # Le model parent qui represente les utilisateur de type parent
 class Parent(User):
     adresse = models.CharField(max_length=255, blank=True, null=True)
-    telephone = models.CharField(max_length=20, null=True)
-
 
 
 # le model child qui herite aussi du models user est reprensente les utilisteur de type enfant
@@ -113,6 +113,21 @@ class ParentChildLink(models.Model):
         return f"{self.child} - {self.child}"
 
 class FamilyMember(models.Model):
+    PAPA = 'papa'
+    MAMAN = 'maman'
+    TANTE = 'tante'
+    ONCLE = 'oncle'
+    GRAND_MERE = 'grand-mere'
+    GRAND_PERE = 'grand-pere'
+
+    RELATIONSHIP_CHOICES = [
+        (PAPA, 'Papa'),
+        (MAMAN, 'Maman'),
+        (TANTE, 'Tante'),
+        (ONCLE, 'Oncle'),
+        (GRAND_MERE, 'Grand-mère'),
+        (GRAND_PERE, 'Grand-père'),
+    ]
     slug = models.SlugField(default=uuid.uuid1)
     relation = models.CharField(max_length=100, choices=RELATIONSHIP_CHOICES)
     parent = models.ForeignKey(Parent, on_delete=models.CASCADE, blank=True, null=True)
@@ -137,8 +152,14 @@ class PendingUser(models.Model):
     gender = models.CharField(max_length=10, null=True, blank=True, verbose_name="Genre")
     telephone = models.CharField(max_length=15, null=True, blank=True)
     adresse = models.CharField(max_length=255, null=True, blank=True)
-    date_de_naissance = models.DateField(null=True, blank=True)
     is_archive = models.BooleanField(default=False, verbose_name="Accepté les conditions d'utilisation")
+    date_de_naissance = models.DateField(blank=True, null=True)
+    type_appareil = models.CharField(max_length=100,blank=True, null=True)
+    numeros_urgences = models.TextField(blank=True, null=True)
+    ecole = models.CharField(max_length=100, blank=True, null=True)
+    allergies = models.TextField(blank=True, null=True)
+    user_type = models.CharField(max_length=50, choices=USER_TYPES, default='PARENT')
+
 
     class Meta:
         verbose_name_plural = "Utilisateurs en attente"

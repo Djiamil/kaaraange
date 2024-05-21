@@ -9,6 +9,8 @@ urlpatterns = [
 
     # interval url de connexion 
     path('users/connexion/', views.LoginViews.as_view(), name='user-login'),
+    path('phone_login/', views.PhoneLoginView.as_view(), name='phone_login'),
+
     # fin interval url de connexion 
 
 
@@ -26,9 +28,9 @@ urlpatterns = [
     # fin des routes qui concerne le parent
 
     # debut des routes pour l'enfant  
-    path('childs/', child.ChildRegister.as_view(), name='ConfirmRegistration'),
+    path('childs/', child.RegisterChild.as_view(), name='ConfirmRegistration'),
     path('parent_child_link/', child.ParendChildLink.as_view(), name='parent_child_link'),
-    # path('child/<slug:slug>/', child.ChildDashboard, name='child_dashboard'),
+    path('child/confirm_otp/', child.ConfirmRegistrationChild.as_view(), name='ConfirmRegistration'),
     path('child/<slug:slug>/', child.childDashbord.as_view(), name='child_dashboard'),
 
 
