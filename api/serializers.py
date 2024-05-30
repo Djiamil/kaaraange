@@ -22,6 +22,11 @@ class UserSerializer(serializers.ModelSerializer):
         # exclude = ['password']
         fields = '__all__'
 
+class ParentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Parent
+        # exclude = ['password']
+        fields = '__all__'
 
 class PendingUserGetSerializer(serializers.ModelSerializer):
     class Meta:
@@ -44,9 +49,15 @@ class ParentChildLinkSerializer(serializers.ModelSerializer):
         model = ParentChildLink
         fields = ['id','slug', 'child', 'qr_code']
 
-
+class ChildAlergySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Allergy
+        fields = ['id', 'child', 'allergy_type', 'description', 'date_identified']
+        
 class ChildSerializerDetail(serializers.ModelSerializer):
     parent_child_link = ParentChildLinkSerializer(read_only=True, source='parentchildlink_set', many=True)
+    allergies = ChildAlergySerializer(read_only=True, many=True)
+
     
     class Meta:
         model = Child
@@ -60,3 +71,9 @@ class RetrieveAPIView(serializers.ModelSerializer):
         class Meta:
             model = Parent
             fields = '__all__'
+
+class LocationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Location
+        fields = '__all__'
+

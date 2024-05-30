@@ -17,6 +17,10 @@ import base64
 from django.utils.translation import gettext as _
 from django.db.utils import IntegrityError
 from django.shortcuts import render, get_object_or_404
+from django.core.exceptions import ObjectDoesNotExist
+from rest_framework.permissions import IsAuthenticated
+from datetime import datetime, timedelta
+
 
 
 # la views pour creer le Child temporelement en attendant qu'il valide otp
@@ -52,6 +56,53 @@ class RegisterChild(generics.CreateAPIView):
                     "success" : False,
                     "code" : 400
                 }, status=status.HTTP_400_BAD_REQUEST)
+# views pour la modification de l'enfant 
+class UpdateChild(generics.UpdateAPIView):
+    queryset = Child.objects.all()
+    serializer_class = ChildSerializer
+    lookup_field = 'slug'
+
+    def put(self, request, *args, **kwargs):
+        slug = self.kwargs.get('slug')
+        try:
+            child = Child.objects.get(slug=slug)
+        except Child.DoesNotExist:
+            return Response({
+                "data": None,
+                "message": "Cet enfant n'existe pas",
+                "success": False,
+                "code": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        phone_number = request.data.get('phone_number')
+        if phone_number is None and not child.phone_number:
+            return Response({
+                "data": None,
+                "message": "Le numéro de téléphone est obligatoire pour modifier le profil",
+                "success": False,
+                "code": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = ChildSerializer(child, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                "data": {
+                    "child": serializer.data
+                },
+                "message": "Profil mis à jour avec succès",
+                "success": True,
+                "code": 200
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({
+                "data": None,
+                "message": "Les données fournies ne sont pas valides",
+                "success": False,
+                "code": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+
 # views pour l'inscription de l'enfant 
 class ConfirmRegistrationChild(generics.CreateAPIView):
     def post(self, request):
@@ -85,6 +136,7 @@ class ConfirmRegistrationChild(generics.CreateAPIView):
             phone_number = pending_user.telephone,
             prenom=pending_user.prenom,
             nom = pending_user.nom,
+            avatar = pending_user.avatar,
             date_de_naissance = pending_user.date_de_naissance,
             password=make_password(pending_user.password),
             accepted_terms = True,
@@ -197,4 +249,152 @@ class childDashbord(generics.RetrieveAPIView):
             'success': True,
             'code' : 200
             } , status=status.HTTP_200_OK)
+
+
+# ajoue de localsations de l'enfant
+class AddLocalization(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
+    localisation = Location.objects.all()
+    serializer_class = LocationSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = LocationSerializer(data=request.data)
+        
+        enfant_slug = request.data.get('enfant')
+        try:
+            child = Child.objects.get(slug=enfant_slug)
+            request.data['enfant'] = child.pk
+        except ObjectDoesNotExist:
+            return Response({
+                "data": None,
+                "message": "Aucun enfant trouvé avec ce slug",
+                "success": False,
+                "code": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if serializer.is_valid():
+            location = serializer.save()
+            return Response({
+                "data": {
+                    "location": LocationSerializer(location).data
+                },
+                "message": "Emplacement de l'enfant enregistré avec succès",
+                "success": True,
+                "code": 200,
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({
+                "data": None,
+                "message": serializer.errors,
+                "success": False,
+                "code": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+# recuperer le dernier emplacement de l'enfant 
+class LastPosition(generics.RetrieveAPIView):
+    serializer_class = LocationSerializer
+
+    def get(self, request, *args, **kwargs):
+        slug = self.kwargs.get('slug')
+
+        try:
+            child = get_object_or_404(Child, slug=slug)
+        except Child.DoesNotExist:
+            return Response({
+                "data": None,
+                "message": "Aucun enfant trouvé",
+                "success": False,
+                "code": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        last_emplacement = Location.objects.filter(enfant=child).last()
+        if last_emplacement:
+            serializer = self.get_serializer(last_emplacement)
+            return Response({
+                "data": serializer.data,
+                "message": "Dernier emplacement de l'enfant récupéré avec succès",
+                "success": True,
+                "code": 200
+            })
+        else:
+            return Response({
+                "data": None,
+                "message": "Aucun emplacement trouvé pour cet enfant",
+                "success": False,
+                "code": 404
+            }, status=status.HTTP_404_NOT_FOUND)
+
+# Recupere la trajectoir de l'enfant les differente point enregistre dans la journés
+class DailyTrajectoryView(generics.ListAPIView):
+    serializer_class = LocationSerializer
+
+    def get(self, request, *args, **kwargs):
+        slug = self.kwargs.get('slug')
+        
+        try:
+            child = get_object_or_404(Child, slug=slug)
+        except Child.DoesNotExist:
+            return Response({
+                "data": None,
+                "message": "Aucun enfant trouvé",
+                "success": False,
+                "code": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        today = timezone.now().date()
+        tomorrow = today + timedelta(days=1)
+
+        daily_locations = Location.objects.filter(
+            enfant=child,
+            datetime_localisation__gte=today,
+            datetime_localisation__lt=tomorrow
+        ).order_by('datetime_localisation')
+
+        if daily_locations.exists():
+            serializer = self.get_serializer(daily_locations, many=True)
+            return Response({
+                "data": serializer.data,
+                "message": "Trajectoire journalière de l'enfant récupérée avec succès",
+                "success": True,
+                "code": 200
+            })
+        else:
+            return Response({
+                "data": None,
+                "message": "Aucun emplacement trouvé pour cet enfant aujourd'hui",
+                "success": False,
+                "code": 404
+            }, status=status.HTTP_404_NOT_FOUND)
+
+
+# views pour ajouter les alergy de l'enfant
+class ChildAlergyApiViews(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
+    queryset = Allergy.objects.all()
+    serializer_class = ChildAlergySerializer
+
+    def get(self, request):
+        allergies = Allergy.objects.all()
+        serializers = ChildAlergySerializer(allergies, many=True)
+        return Response({'data': {'child': serializers.data}, 'message': "Child allergy list", 'success': True, 'code': 200}, status=status.HTTP_200_OK)
+
+    def post(self, request, *args, **kwargs):
+        # Assurez-vous que 'child' est un entier
+        if 'child' in request.data:
+            try:
+                request.data['child'] = int(request.data['child'])
+            except ValueError:
+                return Response({'data': None, 'message': {'child': ['Invalid child ID. Must be an integer.']}, 'success': False, 'code': 400}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = ChildAlergySerializer(data=request.data)
+        if serializer.is_valid():
+            childAllergy = serializer.save()
+            return Response({'data': {'allergy': ChildAlergySerializer(childAllergy).data}, 'message': "Child allergy added successfully", 'success': True, 'code': 200}, status=status.HTTP_201_CREATED)
+        else:
+            return Response({'data': None, 'message': serializer.errors, 'success': False, 'code': 400}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+
 

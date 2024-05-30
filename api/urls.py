@@ -5,6 +5,8 @@ from . import child
 from django.urls import re_path
 
 
+
+
 urlpatterns = [
 
     # interval url de connexion 
@@ -25,6 +27,7 @@ urlpatterns = [
     # debut des routes qui concerne le parent 
     path('parents/', parent.parentRegister.as_view(), name='parentRegister'),
     path('parent/confirm_otp/', parent.ConfirmRegistration.as_view(), name='ConfirmRegistration'),
+    path('parent_update/<slug:slug>/', parent.UpdateParent.as_view(), name='update_parent'),
     # fin des routes qui concerne le parent
 
     # debut des routes pour l'enfant  
@@ -32,8 +35,11 @@ urlpatterns = [
     path('parent_child_link/', child.ParendChildLink.as_view(), name='parent_child_link'),
     path('child/confirm_otp/', child.ConfirmRegistrationChild.as_view(), name='ConfirmRegistration'),
     path('child/<slug:slug>/', child.childDashbord.as_view(), name='child_dashboard'),
-
-
+    path('child_location/', child.AddLocalization.as_view(), name='child_location'),
+    path('position/<slug:slug>/', child.LastPosition.as_view(), name='child_last_position'),
+    path('daily_trajectory/<slug:slug>/', child.DailyTrajectoryView.as_view(), name='daily-trajectory'),
+    path('child_update/<slug:slug>/', child.UpdateChild.as_view(), name='update_child'),
+    path('add_allergy/', child.ChildAlergyApiViews.as_view(), name='child_add_allergy'),
     # fin des routes qui conserne l'enfant 
 
     # les url sur le model qui link le parent au child
