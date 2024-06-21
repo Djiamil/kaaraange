@@ -35,8 +35,44 @@ class RegisterChild(generics.CreateAPIView):
         return Response({'data' : {'child':serializer.data}, 'message' : "Chld liste", 'success' : True, 'code' : 200},status.HTTP_201_CREATED)
     def post(self, request, *args, **kwargs):
         serializer = PendingUserGetSerializer(data=request.data)
+        user_teste_existence = {}
+        user_teste_existence_t = {}
         if serializer.is_valid():
-            pendingUser = serializer.save()
+            if request.data.get('email') == "" and request.data.get('telephone') == "":
+                 return Response({
+                    "data" : None,
+                    "message" : "Véillez Fournir un email ou un numero de télephone pour l'inscription",
+                    "success" : False,
+                    "code" : 404
+                },status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                user_teste_existence = User.objects.get(email=request.data.get('email'))
+            except User.DoesNotExist:
+                pass
+            if user_teste_existence :
+                return Response({
+                    "data" : None,
+                    "message" : "Un utilisateur avec cette email ou numero de téléphone existe deja",
+                    "success" : False,
+                    "code" : 404
+                },status=status.HTTP_400_BAD_REQUEST)
+            
+            try:
+                user_teste_existence_t = User.objects.filter(phone_number=request.data.get('telephone'))
+            except User.DoesNotExist:
+                pass
+            if user_teste_existence_t :
+                return Response({
+                    "data" : None,
+                    "message" : "Un utilisateur avec ce numero de telephone existe deja",
+                    "success" : False,
+                    "code" : 404
+                },status=status.HTTP_400_BAD_REQUEST)
+            
+            if request.data.get('avatar') is None:
+                default_avatar_url = "/avatars/Placeholder_Person.jpg"
+            pendingUser = serializer.save(avatar=default_avatar_url)
             otp_code = generate_otp(pendingUser)
             to_phone_number = request.data['telephone']
             text = "Veillez recevoir votre code de confirmation d'inscription " + otp_code
@@ -141,21 +177,16 @@ class ConfirmRegistrationChild(generics.CreateAPIView):
             password=make_password(pending_user.password),
             accepted_terms = True,
             gender = pending_user.gender,
-            allergies = pending_user.allergies ,
+            # allergies = pending_user.allergies ,
             ecole = pending_user.ecole,
             user_type = 'CHILD'
             )
-        qr_image = generate_qrcode_image(child)
-        parent_child_link = ParentChildLink.objects.create(child=child, qr_code=qr_image)
         serializer = ChildSerializerDetail(child)
-        if qr_image:
-            qr_base64 = base64.b64encode(qr_image).decode('utf-8')
         pending_user.delete()
         otp.delete()
         return Response({
             "data" : {
                 'child' : serializer.data,
-                'qr_base64' : qr_base64
             },
             "message": 'Compte utilisateur créé avec succès',
             "success" : True,
@@ -169,6 +200,18 @@ class ParendChildLink(generics.CreateAPIView):
         relation = request.data.get('relation', None)
                 # Vérifier si la relation est valide
         valid_relations = [choice[0] for choice in FamilyMember.RELATIONSHIP_CHOICES]
+        parent_child_relation = {}
+        try:
+            parent_child_relation = FamilyMember.objects.filter(parent__slug=slug_parent,child__slug=slug_child).first()
+        except FamilyMember.DoesNotExist:
+            pass
+        if parent_child_relation :
+            return Response({
+                "data": None,
+                "message": "Cette enfant a deja une relation avec ce parent",
+                "success": False,
+                "code": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
         if relation not in valid_relations:
             return Response({
                 "data": None,
@@ -392,7 +435,6 @@ class ChildAlergyApiViews(generics.RetrieveAPIView):
             return Response({'data': {'allergy': ChildAlergySerializer(childAllergy).data}, 'message': "Child allergy added successfully", 'success': True, 'code': 200}, status=status.HTTP_201_CREATED)
         else:
             return Response({'data': None, 'message': serializer.errors, 'success': False, 'code': 400}, status=status.HTTP_400_BAD_REQUEST)
-
 
 
 

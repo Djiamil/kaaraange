@@ -18,13 +18,22 @@ from django.contrib import admin
 from django.urls import path, re_path
 from django.conf.urls import include
 from api.views import TokenObtainPairView, TokenRefreshView  # Importez vos vues
+from django.contrib.staticfiles.urls import staticfiles_urlpatterns 
+
+from django.conf import settings
+from django.conf.urls.static import static
 
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     # Autres URLs de votre projet...
     path('api/', include('api.urls')),
+    path('backoffice/', include('backoffice.urls')),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]
 
+urlpatterns  += staticfiles_urlpatterns()
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

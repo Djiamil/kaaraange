@@ -302,12 +302,13 @@ class ChangePasswordUser(generics.GenericAPIView):
                 }, status=status.HTTP_200_OK)
 
 
-
-
-        
-
-
-
+class listeAlert(generics.GenericAPIView):
+        alerts = EmergencyAlert.objects.all()
+        serializer_class = EmergencyAlertSerializer
+        def get(self, request):
+            alerts = EmergencyAlert.objects.all()
+            serializers = EmergencyAlertSerializer(alerts,many=True)
+            return Response(serializers.data)
 
 
 

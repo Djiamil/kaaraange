@@ -55,7 +55,6 @@ class ChildAlergySerializer(serializers.ModelSerializer):
         fields = ['id', 'child', 'allergy_type', 'description', 'date_identified']
         
 class ChildSerializerDetail(serializers.ModelSerializer):
-    parent_child_link = ParentChildLinkSerializer(read_only=True, source='parentchildlink_set', many=True)
     allergies = ChildAlergySerializer(read_only=True, many=True)
 
     
@@ -64,7 +63,7 @@ class ChildSerializerDetail(serializers.ModelSerializer):
         fields = ['id', 'slug', 'email','phone_number','password', 'prenom', 'nom', 'is_active', 'is_archive',
                   'user_type', 'accepted_terms', 'registration_method', 'otp_token',
                   'gender', 'date_de_naissance', 'type_appareil', 'numeros_urgences',
-                  'ecole', 'allergies', 'parent_child_link']
+                  'ecole', 'allergies']
         
 class RetrieveAPIView(serializers.ModelSerializer):
         
@@ -77,3 +76,17 @@ class LocationSerializer(serializers.ModelSerializer):
         model = Location
         fields = '__all__'
 
+class FamilyMemberSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FamilyMember
+        fields = '__all__'
+
+class EmergencyContactSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmergencyContact
+        fields = ['id', 'parent', 'name', 'phone_number', 'relationship']
+
+class EmergencyAlertSerializer(serializers.ModelSerializer):
+    class Meta:
+        model =EmergencyAlert
+        fields = '__all__'

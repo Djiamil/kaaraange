@@ -66,7 +66,7 @@ class CustomUserManager(BaseUserManager):
 # la model user que vons heriter tous les autre model de type user comme parent child et tuteur ...
 class User(AbstractBaseUser, PermissionsMixin, SafeDeleteModel):
     slug = models.SlugField(default=uuid.uuid1)
-    email = models.EmailField(unique=True)
+    email = models.EmailField(unique=True, null=True, blank=True)
     phone_number = models.CharField(max_length=15, unique=True, null=True, blank=True)
     password = models.CharField(max_length=255)
     prenom = models.CharField(max_length=100)
@@ -86,7 +86,7 @@ class User(AbstractBaseUser, PermissionsMixin, SafeDeleteModel):
     _safedelete_policy = SOFT_DELETE_CASCADE
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['phone_number']
-
+ 
     def __str__(self):
         return self.email
 
@@ -145,7 +145,7 @@ class FamilyMember(models.Model):
 # Model de creation temporel des utilisateur en attendant la validation de l'otp 
 class PendingUser(models.Model):
     slug = models.SlugField(default=uuid.uuid1)
-    email = models.EmailField(unique=True, default="")
+    email = models.EmailField(unique=False, null=True,blank=True)
     password = models.CharField(max_length=255)
     prenom = models.CharField(max_length=100)
     nom = models.CharField(max_length=100)
@@ -165,8 +165,6 @@ class PendingUser(models.Model):
     allergies = models.TextField(blank=True, null=True)
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True, verbose_name="Avatar")
     created_at = models.DateTimeField(default=timezone.now)
-
-
 
     class Meta:
         verbose_name_plural = "Utilisateurs en attente"
@@ -207,6 +205,7 @@ class SMS(models.Model):
 
 
 class Location(models.Model):
+    slug = models.SlugField(default=uuid.uuid1)
     enfant = models.ForeignKey(Child, on_delete=models.CASCADE)  # Relation Many-to-One avec Child
     latitude = models.CharField(max_length=50)  # ou une longueur appropriée pour les coordonnées
     longitude = models.CharField(max_length=50)  # ou une longueur appropriée pour les coordonnées
@@ -214,10 +213,11 @@ class Location(models.Model):
     datetime_localisation = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
-        return f"{self.enfant.name} - {self.adresse} ({self.latitude}, {self.longitude})"
+        return f"{self.enfant.nom} - {self.adresse} ({self.latitude}, {self.longitude})"
 
 # Model pour enregistre les alergie des enfants
 class Allergy(models.Model):
+    slug = models.SlugField(default=uuid.uuid1)
     id = models.AutoField(primary_key=True)
     child = models.ForeignKey(Child, related_name='allergies', on_delete=models.CASCADE)
     allergy_type = models.CharField(max_length=100)  # Champ de texte libre pour le type d'allergie
@@ -225,31 +225,64 @@ class Allergy(models.Model):
     date_identified = models.DateField(default=timezone.now)
 
     def __str__(self):
-        return f"{self.allergy_type} allergy for {self.child.name}"
+        return f"{self.allergy_type} allergy for {self.child.nom}"
 
+# Model pour stocker les numero d'urgence a contacter pour les alerte des enfant
+class EmergencyContact(models.Model):
+    RELATIONSHIP_CHOICES = [
+        ('papa', 'Papa'),
+        ('maman', 'Maman'),
+        ('tuteur', 'Tuteur'),
+        ('autre', 'Autre')
+    ]
+    slug = models.SlugField(default=uuid.uuid1)
+    parent = models.ForeignKey(Parent, on_delete=models.CASCADE, related_name='emergency_contacts')
+    name = models.CharField(max_length=100)
+    phone_number = models.CharField(max_length=15, unique=True)
+    relationship = models.CharField(max_length=20, choices=RELATIONSHIP_CHOICES)
+
+    def __str__(self):
+        return f"{self.name} ({self.relationship}) - {self.phone_number}"
+
+# model pour enregistrer les alert des enfant vers les numero enregistre par leur parent
 class EmergencyAlert(models.Model):
     ALERT_TYPE_CHOICES = [
         ('assistance', 'Assistance'),
         ('danger', 'Danger'),
         ('prevenu', "Prévenu par l'enfant"),
     ]
-
+    ALERT_STATE_CHOICES = [
+        ('en_attente', 'En attente'),
+        ('traite', 'Traité'),
+    ]
+    slug = models.SlugField(default=uuid.uuid1)
     id = models.AutoField(primary_key=True)
-    parent = models.ForeignKey(Parent, on_delete=models.CASCADE)
-    child = models.ForeignKey(Child, on_delete=models.CASCADE)
-    alert_type = models.CharField(max_length=20, choices=ALERT_TYPE_CHOICES)
+    child = models.ForeignKey('Child', on_delete=models.CASCADE)
+    alert_type = models.CharField(max_length=20, choices=ALERT_TYPE_CHOICES, default="Prévenu par l'enfant")
     comment = models.TextField()
     alert_datetime = models.DateTimeField(auto_now_add=True)
+    state = models.CharField(max_length=20, choices=ALERT_STATE_CHOICES, default='en_attente')
+
 
     def __str__(self):
-        return f"Alert {self.alert_type} for {self.child.name} by {self.parent.username} on {self.alert_datetime}"
+        return f"Alert {self.alert_type} for {self.child.nom} on {self.alert_datetime}"
+
+    
+class AlertNotification(models.Model):
+    alert = models.ForeignKey(EmergencyAlert, on_delete=models.CASCADE, related_name='notifications')
+    contact = models.ForeignKey(EmergencyContact, on_delete=models.CASCADE)
+    notified_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Notification for {self.contact.name} at {self.notified_at}"
+    
     
 class EmergencyNumber(models.Model):
     EMERGENCY_TYPE_CHOICES = [
         ('secours', 'Secours'),
         ('autre', 'Autre'),
     ]
-
+    slug = models.SlugField(default=uuid.uuid1)
     id = models.AutoField(primary_key=True)
     type = models.CharField(max_length=10, choices=EMERGENCY_TYPE_CHOICES)
     description = models.TextField(blank=True, null=True)

@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'api',
+    'backoffice'
 ]
 
 MIDDLEWARE = [
@@ -64,13 +65,16 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     
 ]
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 ROOT_URLCONF = 'emergency_management_project_kaarange.urls'
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [
+            os.path.join(BASE_DIR, "templates")
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -92,15 +96,15 @@ AUTH_USER_MODEL = 'api.User'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-DATABASES = { 
-    'default': { 
-        'ENGINE': 'django.db.backends.postgresql', 
-        'NAME': 'kaaraange', 
-        'USER': 'djiamil', 
-        'PASSWORD': 'djiamil',
-        'HOST': 'localhost', 
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'kaaraange_db',
+        'USER': 'kaaraange_user',
+        'PASSWORD': 'kaaraange_2024',
+        'HOST': 'localhost',
         'PORT': '5432',
-    } 
+    }
 }
 
 
@@ -141,6 +145,10 @@ USE_I18N = True
 
 STATIC_URL = '/static/'
 
+
+MEDIA_URL = '/mediafile/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'mediafile')
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
@@ -161,3 +169,10 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication', 
     ],
 }
+
+
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:8000',
+    'http://127.0.0.1:8080',
+    # Ajoutez d'autres domaines si nécessaire
+]

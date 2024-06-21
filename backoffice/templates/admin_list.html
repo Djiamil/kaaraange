@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liste des Utilisateurs</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100%;
+            /* border: solid 2px rgb(0, 255, 64) !important; */
+            padding: 0%;
+            margin: 0%;
+        }
+        .add_user {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            /* border: solid 2px rgb(13, 31, 17) !important; */
+            width: 100%;
+            margin-top: 2%;
+            margin-bottom: 2%;
+            padding-top: 2%;
+        }
+        .user_table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0%;
+            padding: 0%;
+
+        }
+        .user_table th, .user_table td {
+            border: solid 1px rgb(13, 31, 17);
+            padding: 8px;
+            text-align: left;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgb(0,0,0);
+            background-color: rgba(0,0,0,0.4);
+            padding-top: 60px;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: 352px;
+            height: 56.32px;
+            top: 176.2px;
+            left: 19px;
+            gap: 0px;
+            border-radius: 10px;
+            border: 1.17px 0px 0px 0px;
+            opacity: 0px;
+            border: solid 2px black;
+        }
+        .email_phone {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2%;
+        }
+        .button {
+            width: 30%;
+            height: 50px;
+            padding: 10px;
+            background: #14345D;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            color: #FFFFFF;
+            border-radius: 10px;
+        }
+        .error-message {
+            color: red;
+            font-size: 14px;
+            display: none;
+        }
+    </style>
+    </head>
+<body>
+    <div class="add_user">
+        <span style="font-size: 20px;"><strong>Liste des Administrateurs</strong></span>
+        <span style="font-size: 20px; cursor: pointer;" onclick="showModal()">
+            <i class="fa-solid fa-square-plus"></i><strong> Ajouter un Utilisateur</strong>
+        </span>
+    </div>
+    <div class="user_list">
+        <table class="user_table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Avatar</th>
+                    <th>Email</th>
+                    <th>Phone Number</th>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>Active</th>
+                </tr>
+            </thead>
+            <tbody id="userTableBody">
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.id }}</td>
+                    <td><img src="/mediafile/{{user.avatar}}" alt="Avatar" style="width:50px;height:50px;border-radius:50%;"></td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.phone_number }}</td>
+                    <td>{{ user.prenom }}</td>
+                    <td>{{ user.nom }}</td>
+                    <td>{{ user.is_active }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- The Modal -->
+    <div id="addUserModal" class="modal">
+        <div class="modal-content" style="display: flex; width: 50%; flex-direction: column;">
+            <div class="email_phone">
+                <span>Ajouter un Administrateurs</span>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <form id="userForm" style="display: flex; flex-direction: column; justify-content: center; width: 100%;">
+                <div class="email_phone">
+                    <div>
+                        <input type="email" id="email" name="email" class="form-control" placeholder="Email" required>
+                        <div class="error-message" id="emailError" style="display: none; color: red;"></div>
+                    </div>
+                    <div>
+                        <input type="text" id="phone_number" name="phone_number" class="form-control" placeholder="Phone Number" required>
+                        <div class="error-message" id="phoneError" style="display: none; color: red;"></div>
+                    </div>
+                </div>
+                <div class="email_phone">
+                    <div>
+                        <input type="text" id="prenom" name="prenom" class="form-control" placeholder="First Name" required>
+                        <div class="error-message" id="prenomError" style="display: none; color: red;"></div>
+                    </div>
+                    <div>
+                        <input type="text" id="nom" name="nom" class="form-control" placeholder="Last Name" required>
+                        <div class="error-message" id="nomError" style="display: none; color: red;"></div>
+                    </div>
+                </div>
+                <div class="email_phone">
+                    <div>
+                        <input type="password" id="password" name="password" class="form-control" placeholder="Password" required>
+                        <div class="error-message" id="passwordError" style="display: none; color: red;"></div>
+                    </div>
+                    <div>
+                        <input type="password" id="confirm_password" name="confirm_password" class="form-control" placeholder="Confirm Password" required>
+                        <div class="error-message" id="confirmPasswordError" style="display: none; color: red;"></div>
+                    </div>
+                </div>
+                <div class="btn_submite" style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                    <button type="button" class="button" onclick="submitForm()">Ajouter Utilisateur</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <script>
+        function showModal() {
+            document.getElementById('addUserModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('addUserModal').style.display = 'none';
+        }
+
+        function showError(elementId, message) {
+            const errorElement = document.getElementById(elementId);
+            errorElement.innerText = message;
+            errorElement.style.display = 'block';
+        }
+
+        function hideErrors() {
+            const errors = document.querySelectorAll('.error-message');
+            errors.forEach(error => {
+                error.style.display = 'none';
+            });
+        }
+
+        async function submitForm() {
+            hideErrors();
+
+            const form = document.getElementById('userForm');
+            const formData = new FormData(form);
+
+            const email = formData.get('email');
+            const phone_number = formData.get('phone_number');
+            const prenom = formData.get('prenom');
+            const nom = formData.get('nom');
+            const password = formData.get('password');
+            const confirmPassword = formData.get('confirm_password');
+
+            if (email === "") {
+                showError('emailError', 'L\'email est un champ obligatoire');
+                return;
+            }
+
+            if (phone_number === "") {
+                showError('phoneError', 'Le numéro de téléphone est un champ obligatoire');
+                return;
+            }
+
+            if (prenom === "") {
+                showError('prenomError', 'Le prénom est un champ obligatoire');
+                return;
+            }
+
+            if (nom === "") {
+                showError('nomError', 'Le nom est un champ obligatoire');
+                return;
+            }
+
+            if (password === "") {
+                showError('passwordError', 'Le mot de passe est un champ obligatoire');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                showError('confirmPasswordError', 'Les mots de passe ne correspondent pas');
+                return;
+            }
+
+            const response = await fetch("/backoffice/add_admin/", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(Object.fromEntries(formData))
+            });
+
+            if (response.ok) {
+                const newUser = await response.json();
+                addUserToTable(newUser);
+                form.reset();
+                closeModal();
+                alert("Administrateur ajouté avec succès")
+            } else {
+                const errorData = await response.json();
+                handleApiErrors(errorData);
+            }
+        }
+
+        function handleApiErrors(errors) {
+            if (errors.email) {
+                showError('emailError', errors.email);
+            }
+            if (errors.phone_number) {
+                showError('phoneError', errors.phone_number);
+            }
+            // Ajoutez d'autres champs d'erreur ici si nécessaire
+        }
+
+        function showError(elementId, message) {
+            const errorElement = document.getElementById(elementId);
+            errorElement.innerText = message;
+            errorElement.style.display = 'block';
+        }
+
+        function hideErrors() {
+            const errors = document.querySelectorAll('.error-message');
+            errors.forEach(error => {
+                error.style.display = 'none';
+            });
+        }
+
+        function addUserToTable(user) {
+            const tableBody = document.getElementById('userTableBody');
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${user.id}</td>
+                <td>${user.email}</td>
+                <td>${user.phone_number}</td>
+                <td>${user.prenom}</td>
+                <td>${user.nom}</td>
+                <td>${user.is_active}</td>
+            `;
+            tableBody.appendChild(row);
+        }
+
+        async function fetchUsers() {
+            const response = await fetch("/backoffice/add_admin/");
+            if (response.ok) {
+                const users = await response.json();
+                const tableBody = document.getElementById('userTableBody');
+                users.forEach(user => {
+                    addUserToTable(user);
+                });
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', fetchUsers);
+    </script>
+</body>
+</html>

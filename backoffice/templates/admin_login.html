@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+
+
+    <style>
+        .bady {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 80vh;
+     }
+     .form-control {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        width: 352px;
+        height: 56.32px;
+        top: 176.2px;
+        left: 19px;
+        gap: 0px;
+        border-radius: 10px;
+        border: 1.17px 0px 0px 0px;
+        opacity: 0px;
+        }
+        .form_login{
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        button {
+            width: 50%;
+            height: 50px;
+            padding: 10px;
+            background: #14345D;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            color: #FFFFFF;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <table class="bady">
+        <tr>
+            <td style="text-align: center;"><h1>Se Connecter</h1></td>
+        </tr>
+        <tr>
+            <td>
+                <form method="post" class="form_login">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <button type="submit">Se Connecter</button>
+                </form>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
