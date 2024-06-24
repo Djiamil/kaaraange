@@ -26,7 +26,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY')
+SECRET_KEY = 'lku^4@h1l!6rj8($a00zb18pj^)kd^8m34s7_c4w$1zy(3%@2l'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -38,8 +38,7 @@ ALLOWED_HOSTS = []
 # ALLOWED_HOSTS = ['vps529772.ovh.net', '127.0.0.1', '*', 'localhost:3000']
 # settings.py
 
-ALLOWED_HOSTS = ['0.0.0.0', 'localhost', '127.0.0.1', '[::1]']  # Ajoutez ici vos hôtes autorisés
-
+ALLOWED_HOSTS = ['0.0.0.0', 'localhost', '127.0.0.1', '[::1]', '109.234.166.83', 'api.prod.lecorpusmedical.org']
 
 
 INSTALLED_APPS = [
@@ -53,6 +52,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'api',
+    'backoffice'
 ]
 
 MIDDLEWARE = [
@@ -65,13 +65,16 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     
 ]
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 ROOT_URLCONF = 'emergency_management_project_kaarange.urls'
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [
+            os.path.join(BASE_DIR, "templates")
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -93,22 +96,19 @@ AUTH_USER_MODEL = 'api.User'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'kaaraange',
-#         'USER': 'djiamil',
-#         'PASSWORD': 'djiamil', 
-#         'HOST': 'localhost',  
-#         'PORT': '5432', 
-#     }
-# }
-
-
 DATABASES = {
-    'default': dj_database_url.parse(config('DATABASE_URL'))
-    
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'kaaraange_db',
+        'USER': 'kaaraange_user',
+        'PASSWORD': 'kaaraange_2024',
+        'HOST': 'localhost',
+        'PORT': '5432',
+    }
 }
+
+
+
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 
@@ -145,10 +145,17 @@ USE_I18N = True
 
 STATIC_URL = '/static/'
 
+
+MEDIA_URL = '/mediafile/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'mediafile')
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+]
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
@@ -162,3 +169,10 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication', 
     ],
 }
+
+
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:8000',
+    'http://127.0.0.1:8080',
+    # Ajoutez d'autres domaines si nécessaire
+]

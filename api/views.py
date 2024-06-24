@@ -16,6 +16,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import AccessToken
 import io
 from django.http import JsonResponse
+from rest_framework.views import APIView
+
 
  
 
@@ -39,7 +41,7 @@ class UserApiViews(generics.ListCreateAPIView):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
     
-# La views de connexion des utilisateu
+# La views de connexion des utilisateur
 class LoginViews(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
 
@@ -48,9 +50,9 @@ class LoginViews(TokenObtainPairView):
         password = request.data.get('password', '')
         registration_method = request.data.get('registration_method', '')
         if not email:
-            return Response({'error': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'data': None,'message': 'Email is required', 'success': False, 'code' : 400}, status=status.HTTP_400_BAD_REQUEST)
         if not password:
-            return Response({'error': 'Password is required'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'data': None, 'message': 'Password is required', 'sucess' : False , 'code' : 400}, status=status.HTTP_400_BAD_REQUEST)
         try:
             # Vérifier si l'utilisateur existe déjà dans la base de données
             user = User.objects.get(email=email)
@@ -64,14 +66,14 @@ class LoginViews(TokenObtainPairView):
                     tokens = super().post(request, *args, **kwargs)
                     access_token = AccessToken.for_user(user)
                     serializer = UserSerializer(user)
-                    return Response({'token': str(access_token), 'user': serializer.data}, status=status.HTTP_200_OK)
+                    return Response({ 'data' : {'token': str(access_token),'user': serializer.data}, 'success' : True, 'code' : 200 }, status=status.HTTP_200_OK)
                 else:
-                    return Response({'error': 'Invalid password'}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response({'data': None,'message': 'Invalid password', 'success': False, 'code' : 400}, status=status.HTTP_400_BAD_REQUEST)
             else:
                 # Utilisateur existant, générer le token d'accès et retourner les informations de l'utilisateur
                 access_token = AccessToken.for_user(user)
                 serializer = UserSerializer(user)  # Utiliser le serializer pour sérialiser l'utilisateur
-                return Response({'token': str(access_token), 'user': serializer.data}, status=status.HTTP_200_OK)
+                return Response({ 'data' : {'token': str(access_token),'user': serializer.data}, 'success' : True, 'code' : 200 }, status=status.HTTP_200_OK)
         # Si l'utilisateur n'existe pas et utilise une méthode de connexion externe
         elif registration_method in ['GOOGLE', 'FACEBOOK', 'APPLE']:
             # Créer un nouvel utilisateur dans la base de données avec la méthode de connexion externe
@@ -79,9 +81,62 @@ class LoginViews(TokenObtainPairView):
             # Générer le token d'accès et retourner les informations de l'utilisateur
             access_token = AccessToken.for_user(user)
             serializer = UserSerializer(user)
-            return Response({'token': str(access_token), 'user': serializer.data}, status=status.HTTP_200_OK)
+            return Response({ 'data' : {'token': str(access_token),'user': serializer.data}, 'success' : True, 'code' : 200 }, status=status.HTTP_200_OK)
         else:
-            return Response({'error': 'Invalid email or registration method'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'data': None, 'message': 'Invalid email or registration method', 'success': False, 'code': 400}, status=status.HTTP_400_BAD_REQUEST)
+
+# connexiion pr numero de telephone
+class PhoneLoginView(APIView):
+    def post(self, request, *args, **kwargs):
+        phone_number = request.data.get('phone_number', '')
+        password = request.data.get('password', '') 
+
+        if not phone_number:
+            return Response({
+                'data': None,
+                'message': 'Phone number is required',
+                'success': False,
+                'code': 400
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if not password:
+            return Response({
+                'data': None,
+                'message': 'Password is required',
+                'success': False,
+                'code' : 400
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(phone_number=phone_number)
+        except User.DoesNotExist:
+            return Response({
+                'data': None,
+                'message': 'Invalid phone number or password',
+                'success': False,
+                "code": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        authenticated_user = authenticate(request, email=user.email, password=password)
+        if authenticated_user is not None:
+            access_token = AccessToken.for_user(user)
+            serializer = UserSerializer(user)
+            return Response({
+                'data': {
+                    'token': str(access_token),
+                    'user': serializer.data,
+                },
+                'message': 'Login successful',
+                'success': True,
+                'code' : 200,
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({
+                'data': None,
+                'message': 'Invalid phone number or password',
+                'success': False,
+                'code' : 400
+            }, status=status.HTTP_400_BAD_REQUEST)
 
 # Pour tester les envoies sms des code otp
 class TestSendSMS(generics.CreateAPIView):
@@ -136,12 +191,21 @@ class SendOtpUserChangePassword(generics.GenericAPIView):
         to_phone_number = request.data.get('telephone')
         
         if not to_phone_number:
-            return JsonResponse({'error': 'Numéro de téléphone manquant'}, status=status.HTTP_400_BAD_REQUEST)
-        
+            return JsonResponse({
+                        'data' : None,
+                        'message': 'Numéro de téléphone manquant',
+                        'success' : False,
+                        'code': 400
+                    }, status=status.HTTP_400_BAD_REQUEST)
         try:
-            parent = Parent.objects.get(telephone=to_phone_number)
-        except Parent.DoesNotExist:
-            return JsonResponse({'error': 'Parent non trouvé'}, status=status.HTTP_404_NOT_FOUND)
+            parent = User.objects.get(phone_number=to_phone_number)
+        except User.DoesNotExist:
+            return JsonResponse({
+                'data' : None,
+                'message': 'Utilisateur non trouvé',
+                'succeed' : False,
+                'code': 404
+                }, status=status.HTTP_404_NOT_FOUND)
 
         otp_code = generate_otp()
         text = f"Votre code de vérification pour changer le mot de passe est : {otp_code}"
@@ -150,7 +214,12 @@ class SendOtpUserChangePassword(generics.GenericAPIView):
         parent.otp_token = otp_code
         parent.save()
 
-        return JsonResponse({'message': 'OTP envoyé avec succès'}, status=status.HTTP_200_OK)
+        return JsonResponse({
+                        'data' :None,
+                        'message': 'OTP envoyé avec succès',
+                        'success' : True,
+                        'code': 200
+                }, status=status.HTTP_200_OK)
 
 # views pour la confirmation de l'otp pour la modificatiion du password
 class ConfirmOtpUserForPassword(generics.GenericAPIView):
@@ -160,15 +229,32 @@ class ConfirmOtpUserForPassword(generics.GenericAPIView):
         otp_code = request.data.get('otp_code')
         
         if not otp_code:
-            return JsonResponse({'error': 'Code OTP manquant'}, status=status.HTTP_400_BAD_REQUEST)
+            return JsonResponse({
+                        'data': None,
+                        'message': 'Code OTP manquant',
+                        'success': False,
+                        'code': 400
+                    }, status=status.HTTP_400_BAD_REQUEST)
         
         try:
             user = User.objects.get(otp_token=otp_code)
         except User.DoesNotExist:
-            return JsonResponse({'error': 'Code de confirmation incorecte'}, status=status.HTTP_404_NOT_FOUND)
+            return JsonResponse({
+                "data" : None,
+                'message': 'Code de confirmation incorecte',
+                'success' : False,
+                'code' : 400
+            }, status=status.HTTP_404_NOT_FOUND)
         
         serializer = self.get_serializer(user)
-        return Response(serializer.data)
+        return Response({
+                'data': {
+                    "user": serializer.data
+                },
+                "message": "Verification de cote de confirmatiiiion avec success",
+                "success" : True,
+                "code": 200
+                },status=status.HTTP_201_CREATED)
 
 # views pour la modification du password de l'utlisateur
 class ChangePasswordUser(generics.GenericAPIView):
@@ -180,28 +266,49 @@ class ChangePasswordUser(generics.GenericAPIView):
         password2 = request.data.get('password2')
 
         if not password1 or not password2:
-            return JsonResponse({'error': 'Veillez renseignez le password1 et le password2'}, status=status.HTTP_400_BAD_REQUEST)
+            return JsonResponse({
+                    'data' : None,
+                    'message': 'Veillez renseignez le password1 et le password2',
+                    'success' : False,
+                    'code' : 400
+                }, status=status.HTTP_400_BAD_REQUEST)
 
         if password1 != password2:
-            return JsonResponse({'error': 'Les mots de passe ne correspondent pas'}, status=status.HTTP_400_BAD_REQUEST)
+            return JsonResponse({
+                'data' : None,
+                'message': 'Les mots de passe ne correspondent pas',
+                'success' : False,
+                'code' : 400
+                }, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             user = User.objects.get(slug=slug)
         except User.DoesNotExist:
-            return JsonResponse({'error': 'Utilisateur non trouvé'}, status=status.HTTP_404_NOT_FOUND)
+            return JsonResponse({
+                    'data': None,
+                    'message': 'Utilisateur non trouvé',
+                    'success': False,
+                    'code': 404,
+                }, status=status.HTTP_404_NOT_FOUND)
 
         user.password = make_password(password1)
         user.save()
 
-        return JsonResponse({'message': 'Votre mot de passe a été modifié avec succès'}, status=status.HTTP_200_OK)
+        return JsonResponse({
+                    'data': None,
+                    'message': 'Votre mot de passe a été modifié avec succès',
+                    'success': True,
+                    "code": 200
+                }, status=status.HTTP_200_OK)
 
 
-
-
-        
-
-
-
+class listeAlert(generics.GenericAPIView):
+        alerts = EmergencyAlert.objects.all()
+        serializer_class = EmergencyAlertSerializer
+        def get(self, request):
+            alerts = EmergencyAlert.objects.all()
+            serializers = EmergencyAlertSerializer(alerts,many=True)
+            return Response(serializers.data)
 
 
 

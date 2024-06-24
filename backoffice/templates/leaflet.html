@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Carte Leaflet</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <!-- Styles CSS pour s'assurer que le body et html prennent toute la hauteur -->
+    <style>
+        html, body {
+            height: 100vh;
+            margin: 0;
+        }
+        #map {
+            height: 60vh; /* 67% de la hauteur de la fenêtre */
+            width: 81%; /* 81% de la largeur disponible */
+            display: flex;
+            position: absolute;
+            margin-top: 70px;
+        }
+        #search-container {
+            /* background: white; */
+            padding: 10px;
+            border-radius: 5px;
+            /* box-shadow: 0 0 15px rgba(0,0,0,0.2); */
+            width: 96%; /* 81% de la largeur disponible */
+
+        }
+        #search {
+            width: 300px;
+            padding: 5px;
+            height: 30px;
+            border: solid 2px black;
+        }
+    </style>
+</head>
+<body>
+    <!-- Div pour afficher la carte -->
+    <div id="search-container">
+        <input type="text" id="search" placeholder="Rechercher une zone..." />
+        <button onclick="searchLocation()">Rechercher</button>
+    </div>
+    <div id="map"></div>
+    <!-- Container pour le champ de recherche -->
+
+
+    <script>
+        // Initialisation de la carte
+        var map = L.map('map').setView([51.505, -0.09], 13);
+
+        // Ajouter une couche de tuiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Ajouter un marqueur initial
+        L.marker([51.505, -0.09]).addTo(map)
+            .bindPopup('A pretty CSS3 popup.<br> Easily customizable.')
+            .openPopup();
+
+        // Fonction de succès pour la géolocalisation
+        function success(position) {
+            var lat = position.coords.latitude;
+            var lon = position.coords.longitude;
+
+            // Centrer la carte sur la position de l'utilisateur
+            map.setView([lat, lon], 13);
+
+            // Ajouter un marqueur à la position de l'utilisateur
+            L.marker([lat, lon]).addTo(map)
+                .bindPopup('You are here.')
+                .openPopup();
+        }
+
+        // Fonction d'erreur pour la géolocalisation
+        function error() {
+            alert("Geolocation not supported or permission denied.");
+        }
+
+        // Vérifier si le navigateur supporte la géolocalisation
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(success, error);
+        } else {
+            alert("Geolocation not supported by this browser.");
+        }
+
+        // Exemple de données géospatiales à partir du contexte Django
+        var locations = [
+            {% for child in children %}
+                {"name": "{{ child.name }}", "coords": [{{ child.latitude }}, {{ child.longitude }}]},
+            {% endfor %}
+        ];
+
+        // Ajouter des marqueurs pour chaque location
+        locations.forEach(function(location) {
+            L.marker(location.coords).addTo(map)
+                .bindPopup(location.name);
+        });
+
+        // Fonction de recherche de zone
+        function searchLocation() {
+            var searchText = document.getElementById('search').value;
+            if (searchText) {
+                fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${searchText}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data && data.length > 0) {
+                            var firstResult = data[0];
+                            var lat = firstResult.lat;
+                            var lon = firstResult.lon;
+
+                            // Centrer et zoomer la carte sur la zone recherchée
+                            map.setView([lat, lon], 13);
+
+                            // Ajouter un marqueur à la zone recherchée
+                            L.marker([lat, lon]).addTo(map)
+                                .bindPopup(firstResult.display_name)
+                                .openPopup();
+                        } else {
+                            alert("Zone non trouvée.");
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching location:', error);
+                        alert("Erreur lors de la recherche de la zone.");
+                    });
+            } else {
+                alert("Veuillez entrer un texte de recherche.");
+            }
+        }
+    </script>
+</body>
+</html>

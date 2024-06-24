@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard admin</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <style>
+        .sidbard {
+            display: flex;
+            height: 100vh;
+            /* border: solid 2px black !important; */
+            flex-direction: row;
+            width: 15%;
+        }
+        .sidbard_teste {
+            display: flex;
+            height: 100vh;
+            /* border: solid 2px black !important; */
+            flex-direction: row;
+            width: 5%;
+        }
+
+        .texte_menu {
+            display: flex;
+            height: 100%;
+            /* border: solid 2px red !important; */
+            width: 80%;
+            background: #343a40;
+            height: 97vh;
+            flex-direction: column;
+        }
+        .texte_reduite {
+            display: flex;
+            height: 100%;
+            /* border: solid 2px red !important; */
+            width: 100%;
+            background: #343a40;
+            height: 97vh;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .profile_icon {
+            display: flex;
+            flex-direction: row;
+            border-bottom: floralwhite 1px solid;
+            padding-bottom: 20px;
+            margin-left: 5px;
+            margin-right: 5px;
+            margin-top: 10px;
+
+        }
+        .libelle_icone {
+            display: flex;
+            flex-direction: row;
+            padding:  5px;
+            margin-top: 20px;
+        }
+        .libelle{
+            display: flex; color: aliceblue; margin-top: 4px;margin-left: 5px;
+        }
+
+        .username_hidden {
+            display: none;
+        }
+
+        .icon_burger {
+            display: flex;
+            /* border: solid 2px red !important; */
+            justify-content: center;
+            width: 20%;
+            margin-left: 3%;
+        }
+        .avatar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .avatar img {
+            border-radius: 50%; /* Makes the image circular */
+            width: 50px; /* Adjust the size as needed */
+            height: 50px; /* Adjust the size as needed */
+            object-fit: cover; /* Ensures the image covers the circle */
+        }
+        .deconnexon {
+            display: flex;
+            color: red;
+            margin-top: auto;
+            padding: 10px;
+            border-top: 1px solid #fff;
+        }
+        .deconnexon_togole {
+            margin-left: 20px;
+        }
+        .deconnexon_togole_span {
+            display: none;
+        }
+
+        .icon i {
+            font-size: 20px; /* Adjust the size as needed */
+            color: aliceblue;
+        }
+        .header_admin {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            /* border: solid 2px red !important; */
+            width: 85%;
+        }
+        .header_admin_reduit {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            /* border: solid 2px red !important; */
+            width: 100%;
+        }
+        .navebar {
+            display: flex;
+            flex-direction: row;
+            height: 5vh;
+            /* border: solid 2px red !important; */
+            width: 100%;
+            align-items: center;
+            justify-content: space-between;
+        }
+      
+        .mes_liste{
+            display: flex;
+            flex-direction: column;
+            height: 5vh;
+            /* border: solid 2px red !important; */
+            width: 100%;
+            padding: 0%;
+        }
+        .user_actif_liste {
+            display: flex;
+            flex-direction: column;
+            height: 5vh;
+            /* border: solid 2px red !important; */
+            width: 100%;
+            padding: 0%;
+            visibility: hidden;
+        }
+        .admin_liste_toggle{
+            display: none;
+        }
+        .Dashboard {
+            display: flex;
+            flex-direction: column;
+            height: 25vh;
+            /* border: solid 3px rgb(0, 255, 98) !important; */
+            width: 100%;
+            margin-left: 0%;
+            padding-left: 0%;
+        }
+
+        .Dashboard_card {
+            display: flex;
+            flex-direction: row;
+            /* border: solid 3px rgb(5, 5, 5) !important; */
+            width: 100%;
+            height: 20vh;
+            margin-right: 2%;
+        }
+
+    </style>
+    
+
+
+
+</head>
+<body style="display: flex; flex-direction: row; width: 99%;">
+
+    <div class="sidbard">
+
+        <div class="texte_menu">
+
+            <div class="profile_icon">
+                <div class="avatar"><img src="https://img.freepik.com/vecteurs-libre/icone-www_23-2147947355.jpg?size=626&ext=jpg" alt="User Image">
+                </div>
+                <div class="libelle"> <span>KAARAANGE</span></div>
+            </div>
+
+            <div class="profile_icon">
+                <div class="avatar"><img src="https://adminlte.io/themes/v3/dist/img/user2-160x160.jpg" alt="User Image">
+                </div>
+                <div class="libelle"> <span>Moustpha Der</span></div>
+            </div>
+
+            <div class="libelle_icone">
+                <div class="Administrateurs_icon_title" style="display: flex; flex-direction: row;">
+                    <div class="icon"><i class="fa-solid fa-user-tie"></i></div>
+                    <div class="libelle"> 
+                            <!-- <span style="color: #fff ; cursor: pointer;">Administrateurs</span>
+                             -->
+                             <span class="administrateurs" style="color: #fff ; cursor: pointer;">Administrateurs</span>
+                            </div>
+                </div>
+            </div>
+
+            <div class="libelle_icone">
+                <div class="icon"><i class="fa-solid fa-user-group"></i></div>
+                <div class="libelle"> <span class="parent_liste" style="color: #fff ; cursor: pointer;">Parents</span></div>
+            </div>
+
+            <div class="libelle_icone">
+                <div class="icon"><i class="fa-solid fa-baby"></i></div>
+                <div class="libelle"> <span class="child_liste" style="color: #fff ; cursor: pointer;">Enfants</span></div>
+
+            </div>
+
+            <div class="libelle_icone">
+                <div class="icon"><i class="fa-solid fa-radiation"></i></div>
+                <div class="libelle"> <span class="alert_list" style="color: #fff ; cursor: pointer;">Alertes</span></div>
+
+            </div>
+            <div class="libelle_icone">
+                <div class="icon"><i class="fa-solid fa-restroom"></i></div>
+                <!-- <div class="libelle"> <span>Utilisateurs Actifs</span></div>
+                 -->
+                 <div class="libelle"> <span class="utilisateurs_actifs" style="color: #fff ; cursor: pointer;">Utilisateurs Actifs</span></div>
+                </div>
+            <div class="libelle_icone">
+                <div class="icon"><i class="fa-solid fa-users-slash"></i></div>
+                <div class="libelle"> <span class="utilisateur_inactifs" style="color: #fff ; cursor: pointer;">Utilisateurs Inactifs</span></div>
+            </div>
+            <div class="libelle_icone">
+                <div class="icon"><i class="fa-solid fa-sliders"></i></div>
+                <div class="libelle"> <span>Parametre</span></div>
+            </div>
+
+            <div class="deconnexon">
+                <a style="color: red;" href="{% url 'admin_logout' %}">
+                    <span><i class="fa-solid fa-power-off"></i></span>
+                    <span class="deconnexon_togole">Déconnexion</span>
+                </a>
+            </div>
+
+        </div>
+
+        <div class="icon_burger">
+            <span><a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars" style="color: #7e7e7e; font-size: 23px; margin-top: 20px;"></i></a></span>
+        </div>
+    </div>
+
+    <div class="header_admin">
+
+        <div class="navebar">
+            <div class="menu" style="display: flex;">
+                <span style="margin: 4%;color: #7e7e7e;"><a>Homme</a></span>
+                <span style="margin: 4%; color: #7e7e7e;"><a>Contacts</a></span>
+            </div>
+            <div class="menu_icon" style="display: flex;justify-content: end;">
+                <span color="red" align="right"  style="font-size: 25px; color: #7e7e7e ;" class="fa-sharp fa-solid fa-bell"><i id="nb_alerts_notification" style="font-size: 25px; color: red ;">0</i></span>
+            </div>
+        </div>
+
+        <div class="Dashboard">
+            <div class="Dashboard_tiltle"><h1 style="color: #7e7e7e;">Dashboard</h1></div>
+            <div class="Dashboard_card">
+                <div style="display: flex; background: #17a2b8; height: 16.5vh;flex-direction: column; align-items: center; width: 23%; margin-right: 3%; border-radius: 2%;">
+                    <h1 id="actif-count" style="color: #ffffff;">0</h1>
+                    <span style="color: #ffffff;">Utilisateurs Actifs</span>
+                </div>
+
+                <div style="display: flex; background: #28a745; height: 16.5vh;flex-direction: column; align-items: center; width: 23%; margin-right: 3%;">
+                    <h1 id="inactif-count" style="color: #ffffff;">0</h1>
+                    <span style="color: #ffffff;">Utilisas Inactifs</span>
+                </div>
+
+                <div style="display: flex; background: #ffc107; height: 16.5vh;flex-direction: column; align-items: center; width: 23%; margin-right: 3%;">
+                    <h1 id="nb_enfant" style="color: #ffffff;">0</h1>
+                    <span>Enfants</span>
+                </div>
+
+                <div style="display: flex; background: #dc3545; height: 16.5vh;flex-direction: column; align-items: center; width: 23%; margin-right: 3%;">
+                    <h1 id="nb_alerts" style="color: #ffffff;">0</h1>
+                    <span style="color: #ffffff;">Alertes</span>
+                </div>
+
+            </div>
+
+            
+        </div>
+
+        <div class="mes_liste" id="contentContainer">
+             {% include 'leaflet.html' %}
+        </div> 
+
+         
+
+
+        <div class="admin_liste_form" style="display: none;">
+            {% include 'admin_list.html' %}
+        </div>
+
+        <div class="admin_liste_form" style="display: none;">
+            {% include 'alert_list.html' %}
+        </div>
+
+
+
+        <!-- restante -->
+    </div>
+
+
+    <script>
+
+           
+        // Evenement pour ecouter l 'icone menu b urger et reduire ou readapter les classe'
+        document.addEventListener("DOMContentLoaded", function() {
+            function fetchData() {
+                fetch('/api/parent_status/')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Update the DOM with the fetched data
+                            document.getElementById('actif-count').textContent = data.data.nombre_actif;
+                            document.getElementById('inactif-count').textContent = data.data.nombre_inactif;
+                            document.getElementById('nb_alerts').textContent = data.data.nb_alerts;
+                            document.getElementById('nb_alerts_notification').textContent = data.data.nb_alerts;
+                            document.getElementById('nb_enfant').textContent = data.data.nb_enfant;
+                        } else {
+                            console.error('Failed to fetch data:', data.message);
+                        }
+                    })
+                    .catch(error => console.error('Error fetching data:', error));
+            }
+
+            // Initial fetch
+            fetchData();
+
+            // Fetch data every 5 seconds
+            setInterval(fetchData, 5000);
+
+            const sidbard = document.querySelector(".sidbard");
+            const header_admin = document.querySelector(".header_admin")
+            const iconBurger = document.querySelector(".icon_burger");
+            const sidebar = document.querySelector(".sidebar");
+            const navLink = document.querySelector(".nav-link");
+            const texteMenu = document.querySelector(".texte_menu");
+            const texteReduite = document.querySelector(".texte_reduite");
+            const libelleIcons = document.querySelectorAll(".libelle");
+            const deconnexon_togole = document.querySelector(".deconnexon_togole")
+            const admin_liste = document.querySelector(".admin_liste")
+            const adminList = document.querySelector(".Administrateurs_icon_title")
+    
+            navLink.addEventListener("click", function() {
+                // Vérifie si la classe "texte_menu" est présente
+                if (texteMenu.classList.contains("texte_menu")) {
+                    // Si oui, retire cette classe et ajoute la classe "texte_reduite"
+                    texteMenu.classList.remove("texte_menu");
+                    texteMenu.classList.add("texte_reduite");
+                    sidbard.classList.remove("sidebar");
+                    sidbard.classList.add("sidbard_teste")
+                    header_admin.classList.remove("header_admin")
+                    header_admin.classList.add("header_admin_reduit");
+                    deconnexon_togole.classList.remove("deconnexon_togole")
+                    deconnexon_togole.classList.add("deconnexon_togole_span")
+                    libelleIcons.forEach(libelle => {
+                        libelle.classList.toggle("username_hidden");
+                    });
+    
+                } else {
+                    // Sinon, retire la classe "texte_reduite" et ajoute la classe "texte_menu"
+                    texteMenu.classList.remove("texte_reduite");
+                    texteMenu.classList.add("texte_menu");
+                    sidbard.classList.remove("sidbard_teste")
+                    header_admin.classList.remove("header_admin_reduit")
+                    header_admin.classList.add("header_admin")
+                    deconnexon_togole.classList.remove("deconnexon_togole_span")
+                    deconnexon_togole.classList.add("deconnexon_togole")
+                    libelleIcons.forEach(libelle => {
+                        libelle.classList.remove("username_hidden");
+                    });
+                }
+            });
+            adminList.addEventListener("click", function() {
+                admin_liste.classList.remove("admin_liste");
+                admin_liste.classList.add("admin_liste_toggle")                
+            })
+        });
+
+        function loadContent(url) {
+                fetch(url)
+                    .then(response => response.text())
+                    .then(data => {
+                        document.getElementById('contentContainer').innerHTML = data;
+                    })
+                    .catch(error => console.error('Error loading HTML:', error));
+            }
+
+            document.querySelector(".administrateurs").addEventListener("click", function() {
+                loadContent("{% url 'admin_list' %}");
+            });
+
+            document.querySelector(".utilisateurs_actifs").addEventListener("click", function() {
+                loadContent("{% url 'utilisateur_actif' %}");
+        });
+
+        document.querySelector(".utilisateur_inactifs").addEventListener("click", function() {
+                loadContent("{% url 'utilisateur_inactif' %}");
+                
+        });
+
+        document.querySelector(".parent_liste").addEventListener("click", function() {
+                loadContent("{% url 'parent_liste' %}");
+                
+        });
+
+        document.querySelector(".child_liste").addEventListener("click", function() {
+                loadContent("{% url 'child_liste' %}");
+                
+        });
+        document.querySelector(".alert_list").addEventListener("click", function() {
+                loadContent("{% url 'alert_list' %}");
+                
+        });
+    </script>
+</body>
+</html>

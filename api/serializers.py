@@ -22,6 +22,11 @@ class UserSerializer(serializers.ModelSerializer):
         # exclude = ['password']
         fields = '__all__'
 
+class ParentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Parent
+        # exclude = ['password']
+        fields = '__all__'
 
 class PendingUserGetSerializer(serializers.ModelSerializer):
     class Meta:
@@ -37,25 +42,51 @@ class ChildSerializer(serializers.ModelSerializer):
     class Meta:
         model = Child
         fields = '__all__'
+        lookup_field = 'slug'
 
 class ParentChildLinkSerializer(serializers.ModelSerializer):
     class Meta:
         model = ParentChildLink
-        fields = ['id','slug', 'parent', 'child', 'qr_code']
+        fields = ['id','slug', 'child', 'qr_code']
 
-
+class ChildAlergySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Allergy
+        fields = ['id', 'child', 'allergy_type', 'description', 'date_identified']
+        
 class ChildSerializerDetail(serializers.ModelSerializer):
-    parent_child_link = ParentChildLinkSerializer(read_only=True, source='parentchildlink_set', many=True)
+    allergies = ChildAlergySerializer(read_only=True, many=True)
+
     
     class Meta:
         model = Child
-        fields = ['id', 'slug', 'email','password', 'prenom', 'nom', 'is_active', 'is_archive',
+        fields = ['id', 'slug', 'email','phone_number','password', 'prenom', 'nom', 'is_active', 'is_archive',
                   'user_type', 'accepted_terms', 'registration_method', 'otp_token',
                   'gender', 'date_de_naissance', 'type_appareil', 'numeros_urgences',
-                  'ecole', 'allergies', 'parent_child_link']
+                  'ecole', 'allergies']
         
 class RetrieveAPIView(serializers.ModelSerializer):
         
         class Meta:
             model = Parent
             fields = '__all__'
+
+class LocationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Location
+        fields = '__all__'
+
+class FamilyMemberSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FamilyMember
+        fields = '__all__'
+
+class EmergencyContactSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmergencyContact
+        fields = ['id', 'parent', 'name', 'phone_number', 'relationship']
+
+class EmergencyAlertSerializer(serializers.ModelSerializer):
+    class Meta:
+        model =EmergencyAlert
+        fields = '__all__'
