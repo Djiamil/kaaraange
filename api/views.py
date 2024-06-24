@@ -47,6 +47,12 @@ class LoginViews(TokenObtainPairView):
 
     def post(self, request, *args, **kwargs):
         email = request.data.get('email', '')
+        phone_number = request.data.get('phone_number')
+        prenom = request.data.get('prenom', '')
+        nom = request.data.get('nom', '')
+        adresse = request.data.get('adresse', '')
+        gender = request.data.get('gender', '')
+        avatar = request.data.get('avatar', '')
         password = request.data.get('password', '')
         registration_method = request.data.get('registration_method', '')
         if not email:
@@ -77,7 +83,14 @@ class LoginViews(TokenObtainPairView):
         # Si l'utilisateur n'existe pas et utilise une méthode de connexion externe
         elif registration_method in ['GOOGLE', 'FACEBOOK', 'APPLE']:
             # Créer un nouvel utilisateur dans la base de données avec la méthode de connexion externe
-            user = User.objects.create(email=email, registration_method=registration_method,password=make_password(password))
+            user = Parent.objects.create(email=email,
+                                         phone_number=phone_number,
+                                         prenom = prenom,
+                                         nom = nom,
+                                         adresse=adresse,
+                                         gender = gender,
+                                         avatar = avatar,
+                                         registration_method=registration_method,password=make_password(password))
             # Générer le token d'accès et retourner les informations de l'utilisateur
             access_token = AccessToken.for_user(user)
             serializer = UserSerializer(user)
@@ -311,5 +324,50 @@ class listeAlert(generics.GenericAPIView):
             return Response(serializers.data)
 
 
+# Permet de renvoyer le code otp si l'utilisateur s'inscrie dabord et qu'il n'a pas reçu de code otp
+class sendBackOtp(generics.GenericAPIView):
+    def post(self, request, *args, **kwargs):
+        to_phone_number = request.data.get('telephone')
+        if not to_phone_number:
+            return JsonResponse({
+                'data': None,
+                'message': 'Numéro de téléphone manquant',
+                'success': False,
+                'code': 400
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            parent = PendingUser.objects.filter(telephone=to_phone_number).last()
+        except PendingUser.DoesNotExist:
+            return JsonResponse({
+                'data': None,
+                'message': 'Utilisateur non trouvé',
+                'success': False,
+                'code': 404
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        otp_code = generate_otp()
+
+        text = f"Votre code de vérification pour finaliser votre inscription : {otp_code}"
+        send_sms(to_phone_number, text)
+
+        try:
+            otp = OTP.objects.get(pending_user=parent)
+            otp.otp_code = otp_code
+            otp.save()
+        except OTP.DoesNotExist:
+            return JsonResponse({
+                'data': None,
+                'message': 'Aucun OTP trouvé pour cet utilisateur',
+                'success': False,
+                'code': 404
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        return JsonResponse({
+            'data': None,
+            'message': 'OTP envoyé avec succès',
+            'success': True,
+            'code': 200
+        }, status=status.HTTP_200_OK)
 
 
