@@ -11,6 +11,8 @@ from django.contrib.auth import get_user_model
 from .serializers import UserSerializer
 from django.contrib.auth.hashers import make_password
 from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+
 
 
 
@@ -123,11 +125,25 @@ def utilisateur_inactif_view(request):
 
 def parent_liste_view(request):
     parent = Parent.objects.all()
-    return render(request, 'admin_list.html', {"users" : parent})
+    return render(request, 'parent_liste.html', {"users" : parent})
 
 def child_liste_view(request):
     parent = Child.objects.all()
-    return render(request, 'admin_list.html', {"users" : parent})
+    return render(request, 'child_liste.html', {"users" : parent})
+
+def child_details_view(request, child_id):
+    child = get_object_or_404(Child, id=child_id)
+    family_members = FamilyMember.objects.filter(child=child).select_related('parent')
+    family_members_data = [
+        {
+            "relation": member.relation,
+            "parent_name": member.parent.nom,
+            "parent_email": member.parent.email,
+            "parent_phone": member.parent.telephone,
+        }
+        for member in family_members
+    ]
+    return JsonResponse({"family_members": family_members_data})
 
 def emergencyAlert_liste_view(request):
     # Sélectionnez toutes les alertes d'urgence en incluant les informations sur l'enfant associé

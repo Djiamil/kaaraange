@@ -192,6 +192,7 @@ class ConfirmRegistrationChild(generics.CreateAPIView):
             "success" : True,
             "code" : 200,
             }, status=status.HTTP_201_CREATED)
+    
 # permet de relier le parent a l'nfant  dans le model parent link to child
 class ParendChildLink(generics.CreateAPIView):
     def post(self, request, *args, **kwargs):
@@ -222,7 +223,8 @@ class ParendChildLink(generics.CreateAPIView):
         if slug_child:
             try:
                 child = Child.objects.get(slug=slug_child)
-                parent = Parent.objects.get(slug=slug_parent)  
+                parent = Parent.objects.get(slug=slug_parent)
+                
                 
                 try:
                     family_member, created = FamilyMember.objects.get_or_create(
@@ -231,6 +233,12 @@ class ParendChildLink(generics.CreateAPIView):
                         relation=relation
                     )
                     if created:
+                        emergencyContact = EmergencyContact.objects.create(
+                            parent = parent,
+                            phone_number = parent.phone_number,
+                            relationship = relation,
+                            name = parent.prenom + ' ' + parent.nom
+                        )
                         return Response({
                             "dada" :None,
                             "message" : 'Parents ajoutés avec succès à l\'enfant',
@@ -256,14 +264,14 @@ class ParendChildLink(generics.CreateAPIView):
             except Child.DoesNotExist:
                 return Response({
                     "data" : None,
-                    "message" : 'Aucun enfant trouvé avec ce slug',
+                    "message" : 'Aucun enfant trouvé avec ce qqrcode',
                     "success" : False,
                     "code" : 404
                 }, status=404)
             except Parent.DoesNotExist:
                 return Response({
                     "data" : None,
-                    "message" : 'Aucun enfant trouvé avec ce slug',
+                    "message" : 'Aucun enfant trouvé avec ce qrcode',
                     "success" : False,
                     "code" : 404
                 }, status=404)
