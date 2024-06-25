@@ -258,7 +258,7 @@ class ParentDashbord(generics.RetrieveAPIView):
         except Parent.DoesNotExist:
             return Response({
                 "data": None,
-                "message": 'Aucun parent trouvé pour ce slug',
+                "message": 'Aucun parent trouvé',
                 "success": False,
                 "code": 400
             }, status=status.HTTP_400_BAD_REQUEST)
@@ -342,7 +342,7 @@ class SendAlertAllEmergenctContactForParentToChild(generics.RetrieveAPIView):
                             emergency_contacts.append(contact)
                 for contact in emergency_contacts:
                     text = f"Bonjour {contact.name}, une alerte de type {alert.alert_type} a été déclenchée pour {child.prenom}. Commentaire: {alert.comment}"
-                    # send_sms(contact.phone_number, text)
+                    send_sms(contact.phone_number, text)
                     AlertNotification.objects.create(alert=alert, contact=contact)
                 return Response({'data': None, 'message': 'Alert created and emergency contacts notified.',"success": True,"code" : 200}, status=status.HTTP_201_CREATED)
             except Child.DoesNotExist:

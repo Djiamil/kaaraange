@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Liste des Utilisateurs Actifs</title>
+    <title>Liste des Enfants</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
     <style>
@@ -12,7 +12,6 @@
             flex-direction: column;
             height: 100vh;
             width: 100%;
-            /* border: solid 2px rgb(0, 255, 64) !important; */
             padding: 0%;
             margin: 0%;
         }
@@ -20,7 +19,6 @@
             display: flex;
             flex-direction: row;
             justify-content: space-between;
-            /* border: solid 2px rgb(13, 31, 17) !important; */
             width: 100%;
             margin-top: 2%;
             margin-bottom: 2%;
@@ -126,51 +124,100 @@
         <table class="user_table">
             <thead>
                 <tr>
-                    <th>ID</th>
+                    <th>Avatar</th>
                     <th>Email</th>
-                    <th>Phone Number</th>
-                    <th>First Name</th>
-                    <th>Last Name</th>
-                    <th>Type</th>
-                    <th>Active</th>
+                    <th>Téléphone</th>
+                    <th>Prenom</th>
+                    <th>Nom</th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody id="userTableBody">
-                <!-- Les utilisateurs actifs seront ajoutés ici par JavaScript -->
+                {% for user in users %}
+                <tr>
+                    <td><img src="/mediafile/{{ user.avatar }}" alt="Avatar" style="width:50px;height:50px;border-radius:50%;"></td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.phone_number }}</td>
+                    <td>{{ user.prenom }}</td>
+                    <td>{{ user.nom }}</td>
+                    <td>
+                        <button onclick="viewDetails('{{ user.id }}')">Détails</button>
+                    </td>
+                </tr>
+                {% endfor %}
             </tbody>
         </table>
     </div>
 
+    <!-- Modal for family details -->
+    <div id="familyDetailsModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Détails de la Famille</h2>
+            <div id="familyDetails"></div>
+        </div>
+    </div>
+
+    <!-- Scripts should be at the end of the body -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script>
         function addUserToTable(user) {
-    const tableBody = document.getElementById('userTableBody');
-    const row = document.createElement('tr');
-    row.innerHTML = `
-        <td>${user.id}</td>
-        <td>${user.email}</td>
-        <td>${user.phone_number ? user.phone_number : ''}</td>
-        <td>${user.prenom}</td>
-        <td>${user.nom}</td>
-        <td>${user.user_type}</td>
-        <td>${user.is_active ? 'Oui' : 'Non'}</td>
-    `;
-    tableBody.appendChild(row);
-}
-
-    async function fetchParents() {
-        const response = await fetch("/backoffice/child_liste/");
-        if (response.ok) {
-            const data = await response.json(); // Obtenir les données JSON
-            const users = data.parent_actif_liste; // Accéder à la propriété parent_actif_liste
             const tableBody = document.getElementById('userTableBody');
-            users.forEach(user => {
-                addUserToTable(user);
-            });
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><img src="/mediafile/${user.avatar}" alt="Avatar" style="width:50px;height:50px;border-radius:50%;"></td>
+                <td>${user.email}</td>
+                <td>${user.phone_number ? user.phone_number : ''}</td>
+                <td>${user.prenom}</td>
+                <td>${user.nom}</td>
+                <td><button onclick="viewDetails('${user.id}')">Détails</button></td>
+            `;
+            tableBody.appendChild(row);
         }
-    }
+
+        async function fetchParents() {
+            const response = await fetch("/backoffice/child_liste/");
+            if (response.ok) {
+                const data = await response.json();
+                const users = data.parent_actif_liste;
+                users.forEach(user => {
+                    addUserToTable(user);
+                });
+            }
+        }
+
+        async function viewDetails(childId) {
+            const response = await fetch(`/backoffice/child_details/${childId}/`);
+            if (response.ok) {
+                const data = await response.json();
+                const familyMembers = data.family_members;
+                const familyDetails = document.getElementById('familyDetails');
+                familyDetails.innerHTML = ''; // Clear previous details
+                familyMembers.forEach(member => {
+                    const memberInfo = document.createElement('div');
+                    memberInfo.innerHTML = `
+                        <p>Relation: ${member.relation}</p>
+                        <p>Nom du parent: ${member.parent_name}</p>
+                        <p>Email du parent: ${member.parent_email}</p>
+                        <p>Téléphone du parent: ${member.parent_phone}</p>
+                    `;
+                    familyDetails.appendChild(memberInfo);
+                });
+                document.getElementById('familyDetailsModal').style.display = 'block';
+            }
+        }
 
         document.addEventListener('DOMContentLoaded', fetchParents);
+
+        document.querySelector('.close').onclick = function() {
+            document.getElementById('familyDetailsModal').style.display = 'none';
+        };
+
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('familyDetailsModal')) {
+                document.getElementById('familyDetailsModal').style.display = 'none';
+            }
+        };
     </script>
 </body>
 </html>
