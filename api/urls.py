@@ -24,6 +24,7 @@ urlpatterns = [
     path('otp_password_user/', views.SendOtpUserChangePassword.as_view(), name='otp_password_user'),
     path('confirm__otp_password_user/', views.ConfirmOtpUserForPassword.as_view(), name='confirm_otp_password_user'),
     path('change_password/', views.ChangePasswordUser.as_view(), name='ChangePasswordUser'),
+    path('sendB_back_otp/', views.sendBackOtp.as_view(), name='sendBackOtp'),
     # fin intervale des url qui conserne le user 
 
     # debut des routes qui concerne le parent 
