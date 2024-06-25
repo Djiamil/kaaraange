@@ -352,7 +352,7 @@ class sendBackOtp(generics.GenericAPIView):
         send_sms(to_phone_number, text)
 
         try:
-            otp = OTP.objects.get(pending_user=parent)
+            otp = OTP.objects.filter(pending_user=parent).last()
             otp.otp_code = otp_code
             otp.save()
         except OTP.DoesNotExist:
