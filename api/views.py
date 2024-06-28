@@ -346,7 +346,7 @@ class sendBackOtp(generics.GenericAPIView):
                 'code': 404
             }, status=status.HTTP_404_NOT_FOUND)
 
-        otp_code = generate_otp()
+        otp_code = regenerate_otp()
 
         text = f"Votre code de vérification pour finaliser votre inscription : {otp_code}"
         send_sms(to_phone_number, text)
