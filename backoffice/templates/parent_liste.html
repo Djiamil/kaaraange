@@ -117,6 +117,56 @@
             font-size: 14px;
             display: none;
         }
+
+        .modal-content {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            padding-left: 5%;
+            padding-right: 15%;
+            width: 60%;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Ajuste les valeurs selon ton besoin */
+        }
+        .familyDetails {
+            display: flex;
+            flex-direction: column;
+        }
+        .familyChild {
+            display: flex;
+            flex-direction: column;
+            width: 40%;
+            justify-content: baseline;
+            align-items: center;
+        }
+        .right-border {
+            display: flex;
+            flex-direction: column;
+            width: 5%;
+            border-right: 2px solid gray ;
+        }
+        .action-cell {
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .center-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            border: none;
+            /* background: rgb(112, 167, 212); */
+            cursor: pointer;
+        }
+        .center-button:hover {
+            background: rgb(112, 167, 212);
+        }
+
+
+        .center-button i {
+            font-size: 1.2em; /* Adjust the size of the icon if needed */
+        }
     </style>
 </head>
 <body>
@@ -133,6 +183,7 @@
                     <th>Prenom</th>
                     <th>Nom</th>
                     <th>Adresse</th>
+                    <th>Action</th>
                     <!-- <th>Type</th>
                     <th>Active</th> -->
                 </tr>
@@ -147,12 +198,27 @@
                     <td>{{ user.prenom }}</td>
                     <td>{{ user.nom }}</td>
                     <td>{{ user.adresse }}</td>
+                    <td style="align-items: center;">
+                        <button class="center-button" onclick="viewsDetailParent('{{ user.id }}')"><i class="fa-solid fa-plus-minus"></i></button>
+                    </td>
                     <!-- <td>{{ user.is_active }}</td> -->
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
+
+        <!-- Modal for family details -->
+        <div id="familyDetailsModal" class="modal">
+            <div style="display: flex; width: 102%; flex-direction: column; margin-left: 4.5%;">
+                <div class="modal-content">
+                    <div id="familyChild" class="familyChild"></div>
+                    <div class="right-border"></div>
+                    <div id="familyDetails" class="familyDetails">
+                    </div>
+                </div>
+            </div>
+        </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script>
@@ -168,6 +234,8 @@
         <td>${user.user_type}</td>
         <td><img src="/mediafile/{{user.avatar}}" alt="Avatar" style="width:50px;height:50px;border-radius:50%;"></td> <!-- Utilisation de template string correcte -->
         <td>${user.is_active ? 'Oui' : 'Non'}</td>
+        <td class="action-cell"><button class="center-button" onclick="viewsDetailParent('${user.id}')"><i class="fa-solid fa-plus-minus"></i></button></td>
+
     `;
     tableBody.appendChild(row);
 }
@@ -183,8 +251,105 @@
             });
         }
     }
+    async function viewsDetailParent(parentId) {
+            const response = await fetch(`/backoffice/parent_details/${parentId}/`);
+            if (response.ok) {
+                const data = await response.json();
+                const familyMembers = data.family_members;
+                const familyDetails = document.getElementById('familyDetails');
+                const familyChild = document.getElementById('familyChild');
+
+                familyDetails.innerHTML = ''; // Clear previous family details
+                familyChild.innerHTML = ''; // Clear previous child details
+
+                const parentsTitle = document.createElement('h2');
+                parentsTitle.textContent = "Listes des enfant";
+                familyDetails.appendChild(parentsTitle);
+
+                familyMembers.forEach(member => {
+                    const memberInfo = document.createElement('div');
+                    
+
+                    // Créer un élément img pour l'avatar si l'URL est disponible
+                    if (member.avatar_url) {
+                    const avatarImg = document.createElement('img');
+                    avatarImg.src = member.avatar_url;
+                    avatarImg.alt = 'Avatar';
+                    avatarImg.style.width = '50px';
+                    avatarImg.style.height = '50px';
+                    avatarImg.style.borderRadius = '50%';
+                    avatarImg.style.display = 'inline-block'; // Ensure avatarImg is inline block
+                    avatarImg.style.alignContent= "center";
+                    memberInfo.appendChild(avatarImg);
+                }
+
+                    // Ajouter les autres détails du parent après l'avatar
+                    const parentFullName = `${member.parent_firstname} ${member.parent_name}`;
+                    memberInfo.innerHTML += `
+                        <p>Relation: ${member.relation}</p>
+                        <p>Nom du parent: ${parentFullName}</p>
+                        <p>Email du parent: ${member.parent_email}</p>
+                        <p>Téléphone du parent: ${member.parent_phone}</p>
+                    `;
+                    memberInfo.style.borderBottom = '2px solid gray';
+                    memberInfo.style.marginBottom = '20px';
+
+                    familyDetails.appendChild(memberInfo);
+                });
+
+                // Afficher les détails de l'enfant
+                const childInfo = document.createElement('div');
+                childInfo.innerHTML = '<h3>Détails de du parent</h3>';
+                childInfo.style.display = "flex";
+                childInfo.style.flexDirection = "column";
+                childInfo.style.width = "100%";
+                childInfo.style.alignContent = "center";
+
+                // Créer un conteneur pour l'avatar
+                const avatarContainer = document.createElement('div');
+                avatarContainer.style.textAlign = 'center'; // Centrer l'avatar
+
+                // Afficher l'avatar du child s'il est disponible
+                if (data.family_members[0].child_avatar) {
+                    const childAvatarImg = document.createElement('img');
+                    childAvatarImg.src = data.family_members[0].child_avatar;
+                    childAvatarImg.alt = 'Avatar de l\'enfant';
+                    childAvatarImg.style.width = '50px';
+                    childAvatarImg.style.height = '50px';
+                    childAvatarImg.style.borderRadius = '50%';
+                    avatarContainer.appendChild(childAvatarImg);
+                }
+
+                // Ajouter l'avatar au début des détails de l'enfant
+                childInfo.appendChild(avatarContainer);
+
+                // Ajouter les autres détails de l'enfant
+                childInfo.innerHTML += `
+                    <div style = "display:flex; justify-content: space-between; width:100%"><p><strong>Prénom : </strong></p><p>${data.family_members[0].parent.prenom}</p></div>
+                    <div style = "display:flex; justify-content: space-between; width:100%"><p><strong>Nom : </strong></p><p>${data.family_members[0].parent.nom}</p></div>
+                    <div style = "display:flex; justify-content: space-between; width:100%"><p><strong>Email : </strong></p><p>${data.family_members[0].parent.email}</p></div>
+                    <div style = "display:flex; justify-content: space-between; width:100%"><p><strong>Téléphone : </strong></p><p>Téléphone: ${data.family_members[0].parent.phone_number ? data.family_members[0].parent.phone_number : 'Non spécifié'}</p></div>
+                    <div style = "display:flex; justify-content: space-between; width:100%"><p><strong>Date de naissance : </strong></p><p>${data.family_members[0].parent.date_de_naissance}</p></div>
+                    <div style = "display:flex; justify-content: space-between; width:100%"><p><strong>Ecole : </strong></p><p>${data.family_members[0].parent.ecole}</p></div>
+                `;
+
+                familyChild.appendChild(childInfo);
+
+                document.getElementById('familyDetailsModal').style.display = 'block';
+            }
+        }
 
         document.addEventListener('DOMContentLoaded', fetchParents);
+        
+        document.querySelector('.close').onclick = function() {
+            document.getElementById('familyDetailsModal').style.display = 'none';
+        };
+
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('familyDetailsModal')) {
+                document.getElementById('familyDetailsModal').style.display = 'none';
+            }
+        };
     </script>
 </body>
 </html>

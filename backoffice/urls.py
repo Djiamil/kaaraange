@@ -17,4 +17,5 @@ urlpatterns = [
     path('update_alert_state/', views.update_alert_state, name='update_alert_state'),
     path('leaflet_carte/', views.child_list_view, name='leaflet_carte'),
     path('child_details/<int:child_id>/', views.child_details_view, name='child_details'),
+    path('parent_details/<int:parent_id>/', views.paren_details_view, name='parent_details'),
 ]

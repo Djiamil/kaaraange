@@ -13,8 +13,6 @@ urlpatterns = [
     path('users/connexion/', views.LoginViews.as_view(), name='user-login'),
     path('phone_login/', views.PhoneLoginView.as_view(), name='phone_login'),
     path('listeAlert/', views.listeAlert.as_view(), name='listeAlert'),
-
-
     # fin interval url de connexion 
 
 

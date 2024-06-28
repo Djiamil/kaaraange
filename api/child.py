@@ -223,8 +223,7 @@ class ParendChildLink(generics.CreateAPIView):
         if slug_child:
             try:
                 child = Child.objects.get(slug=slug_child)
-                parent = Parent.objects.get(slug=slug_parent)
-                
+                parent = Parent.objects.get(slug=slug_parent)            
                 
                 try:
                     family_member, created = FamilyMember.objects.get_or_create(
