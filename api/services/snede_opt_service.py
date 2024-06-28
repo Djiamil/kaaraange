@@ -17,6 +17,10 @@ def generate_otp(pending_user=None):
     otp = OTP.objects.create(pending_user=pending_user,otp_code=otp_code)
     return otp_code
 
+def regenerate_otp(pending_user=None):
+    otp_code = ''.join(random.choices(string.digits, k=4))
+    return otp_code
+
 # gere les envoie sms des code otp et autre recoie numero et message
 def send_sms(to_phone_number, text):
     try:
