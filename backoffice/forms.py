@@ -26,21 +26,21 @@ class AdminCreationForm(UserCreationForm):
     nom = forms.CharField(
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Last Name'})
     )
-    password1 = forms.CharField(
-        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Password'})
-    )
-    password2 = forms.CharField(
-        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Confirm Password'})
+    avatar = forms.ImageField(
+        required=False,
+        widget=forms.FileInput(attrs={'class': 'form-control-file'})
     )
 
     class Meta:
         model = User
-        fields = ['email', 'phone_number', 'prenom', 'nom', 'password1', 'password2']
+        fields = ['email', 'phone_number', 'prenom', 'nom', 'password1', 'password2', 'avatar']
 
     def save(self, commit=True):
         user = super().save(commit=False)
         user.user_type = 'ADMIN'
-        user.is_staff = True  # Ensure the user has is_staff set to True
+        user.is_staff = True
+        if self.cleaned_data['avatar']:
+            user.avatar = self.cleaned_data['avatar']
         if commit:
             user.save()
         return user
