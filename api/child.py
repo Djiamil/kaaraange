@@ -23,7 +23,7 @@ from datetime import datetime, timedelta
 
 
 
-# la views pour creer le Child temporelement en attendant qu'il valide otp
+# la views pour creer le Child temporelement en attendant qu'il valide otp cette procedre est remplacer par le oveau flow qui fait qe c'est le parent qui inscris l'enfant 
 class RegisterChild(generics.CreateAPIView):
     queryset = PendingUser.objects.all()
     serializer_class = PendingUserGetSerializer
@@ -139,7 +139,7 @@ class UpdateChild(generics.UpdateAPIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
 
-# views pour l'inscription de l'enfant 
+# views pour l'inscription de l'enfant c'est           plus utiliser pour le nouveau flow l'enfant ne recois plus de code otp
 class ConfirmRegistrationChild(generics.CreateAPIView):
     def post(self, request):
         otp_code = request.data.get('otp_code')
@@ -444,6 +444,108 @@ class ChildAlergyApiViews(generics.RetrieveAPIView):
             return Response({'data': None, 'message': serializer.errors, 'success': False, 'code': 400}, status=status.HTTP_400_BAD_REQUEST)
 
 
+# Creer un child qui sera valider par la par le parent une foix que les donné serons renseinger
 
+class parentResisterChild(generics.RetrieveAPIView):
+    serializers_class = ChildSerializer
+    queryset = Child.objects.all()
+    def post(self, request, *args, **kwargs):
+        child = Child.objects.create(
+            date_de_naissance = timezone.now().date(),
+            user_type = 'CHILD'
+        )
+        return Response({'data': ChildSerializer(child).data, 'message': "Veillez renseignez les information de l'enfant", 'success': True, 'code': 200}, status=status.HTTP_200_OK)
 
+# La nouvelle methode pour valider la creation du compte de lenfant par le parent
+class parentValidateChildDataAndLink(generics.RetrieveAPIView):
+    serializer_class = ChildSerializer
+    queryset = Child.objects.all()
+    lookup_field = 'slug'
+    def put(self, request, *args, **kwargs):
+        slug = self.kwargs.get('slug')
+        slug_parent = request.data.get('slug_parent', '')
+        relation = request.data.get('relation', '')
+        try:
+            child = Child.objects.get(slug=slug)
+        except Child.DoesNotExist:
+            return Response({'data' : None, 'message' : "Aucun enfant trouver", 'success' :False , 'code' : 400},status=status.HTTP_400_BAD_REQUEST)
+        serializer = ChildSerializer(child, data=request.data, partial=True)
+        if serializer.is_valid():
+            try:
+                user_teste_existence = User.objects.filter(email=request.data.get('email')).first()
+            except User.DoesNotExist:
+                pass
+            if user_teste_existence.email is not None:
+                if user_teste_existence :
+                    return Response({
+                        "data" : None,
+                        "message" : "Un utilisateur avec cette email existe deja",
+                        "success" : False,
+                        "code" : 404
+                    },status=status.HTTP_400_BAD_REQUEST)
+            try:
+                user_teste_existence_t = User.objects.filter(phone_number=request.data.get('telephone')).first()
+            except User.DoesNotExist:
+                pass
+            if user_teste_existence_t.phone_number is not None :
+                if user_teste_existence_t :
+                    return Response({
+                        "data" : None,
+                        "message" : "Un utilisateur avec ce numero de telephone existe deja",
+                        "success" : False,
+                        "code" : 404
+                    },status=status.HTTP_400_BAD_REQUEST)
+            try:
+                parent = Parent.objects.get(slug=slug_parent)
+            except Parent.DoesNotExist:
+                return Response({'data' : None, 'message' : "Aucun parent trouver pour la creation du compte de l'enfant", 'success' : False}, status=status.HTTP_400_BAD_REQUEST)
+            serializer.save()
+            # mettre a jour le mot de passe de l'enfant nouvellement ajouter
+            password = request.data.get('password', '')
+            if password is not None:
+                child.password = make_password(password)
+                child.save()
+            # Lier directement le parent a l'enfant 
+            family_member, created = FamilyMember.objects.get_or_create(
+                        parent=parent,
+                        child=child,
+                        relation=relation
+                    )
+            if created:
+                # Ajouter le parent dans les contact d'urgence
+                emergencyContact = EmergencyContact.objects.create(
+                    parent = parent,
+                    phone_number = parent.phone_number,
+                    relationship = relation,
+                    name = parent.prenom + ' ' + parent.nom
+                )
+            # Ajouter un alergie pour l'enfatnsi existe si allergy_type est dans le payload
+            allergy_type = request.data.get('allergy_type', '')
+            if allergy_type:
+                alergie = Allergy.objects.create(
+                    allergy_type = allergy_type,
+                    child = child
+                )
+            # Ajouter un probleme medicaux si issue_type est dans le payload
+            issue_type = request.data.get('issue_type', '')
+            if issue_type:
+                medicalIssue = MedicalIssue.objects.create(
+                    issue_type = issue_type,
+                    child = child
+                )
+            return Response({
+                "data": {
+                    "child": serializer.data
+                },
+                "message": "Enfant incris avec sucess",
+                "success": True,
+                "code": 200
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({
+                "data": None,
+                "message": "Les données fournies ne sont pas valides",
+                "success": False,
+                "code": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
 

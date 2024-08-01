@@ -75,11 +75,100 @@
             text-decoration: none;
             cursor: pointer;
         }
+        .toast {
+    visibility: hidden;
+    min-width: 250px;
+    margin-left: -125px;
+    background-color: #4CAF50;
+    color: white;
+    text-align: center;
+    border-radius: 2px;
+    position: fixed;
+    z-index: 1;
+    left: 50%;
+    bottom: 30px;
+    font-size: 17px;
+    padding: 16px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+}
+
+.toast.show {
+    visibility: visible;
+    animation: fadeInOut 0.5s ease, fadeOut 0.5s 2.5s ease;
+}
+
+@keyframes fadeInOut {
+    from {opacity: 0;}
+    to {opacity: 1;}
+}
+
+@keyframes fadeOut {
+    from {opacity: 1;}
+    to {opacity: 0;}
+}
+.toast.show {
+  animation-duration: 5s;
+  animation-name: glissement;
+  animation-iteration-count: infinite;
+}
+input {
+            width: 200px;
+            height: 50px;
+            border: solid 2px black;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 10px;
+            font-size: 16px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .searchbtn {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .searchbtn:hover {
+            background-color: #45a049;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
     <div class="add_alert">
         <span style="font-size: 20px;"><strong>Liste des Alertes d'Urgence</strong></span>
+        <div style="margin-bottom: 20px; display: flex; flex-direction: row;">
+            <div style="display: flex; justify-content: center; align-items: center; margin-left: 4px; margin-right: 4px;">
+                <label for="searchInput">Par prénom:</label>
+                <input type="text" id="searchInput" placeholder="Prénom">
+            </div>
+            <div style="display: flex; justify-content: center; align-items: center; margin-left: 4px; margin-right: 4px;">
+                <label for="startDateInput">Date de début :</label>
+                <input type="date" id="startDateInput">
+            </div>
+            <div style="display: flex; justify-content: center; align-items: center; margin-left: 4px; margin-right: 4px;">
+                <label for="endDateInput">Date de fin :</label>
+                <input type="date" id="endDateInput">
+            </div>
+            <div style="display: flex; justify-content: center; align-items: center; margin-left: 4px; margin-right: 4px;">
+                <button class="searchbtn" style="height: 50px;" onclick="handleFilter()">Filtrer</button>
+            </div>
+        </div>
     </div>
     <div class="alert_list">
         <table class="alert_table">
@@ -88,12 +177,11 @@
                     <th>Type d'Alerte</th>
                     <th>Commentaire</th>
                     <th>Date et Heure de l'Alerte</th>
-                    <th>First Name child</th>
-                    <th>Last Name child</th>
-                    <th>Téléphone Child</th>
+                    <th>Prenom enfant</th>
+                    <th>Nom enfant</th>
+                    <th>Téléphone enfant</th>
                     <th>État</th>
                     <th>Actions</th>
-                    <!-- Ajoutez d'autres colonnes au besoin -->
                 </tr>
             </thead>
             <tbody id="alertTableBody">
@@ -102,11 +190,11 @@
                 <tr>
                     <td>{{ alert.alert_type }}</td>
                     <td>{{ alert.comment }}</td>
-                    <td>{{ alert.alert_datetime }}</td>
+                    <td>{{ alert.alert_datetime|date:"j F Y à H:i" }}</td>
                     <!-- Accès aux informations de l'enfant associé à l'alerte -->
-                    <td>{{ alert.child.prenom }}</td>
-                    <td>{{ alert.child.nom }}</td>
-                    <td>{{ alert.child.phone_number }}</td>
+                    <td>{{ alert.child__prenom }}</td>
+                    <td>{{ alert.child__nom }}</td>
+                    <td>{{ alert.child__phone_number }}</td>
                     <td style="color: {% if alert.state == 'traite' %}green{% else %}red{% endif %};">{{ alert.state }}</td>
                     <td>
                         <!-- Bouton pour mettre à jour l'état -->
@@ -117,10 +205,20 @@
             {% endfor %}
             </tbody>
         </table>
+        <div id="loadingAlert">Chargement...</div>
+        <div id="toast" class="toast">
+            Alért traiter avec succès!
+        </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script>
+
+    function showToast() {
+            const toast = document.getElementById('toast');
+            toast.className = 'toast show';
+            setTimeout(() => { toast.className = toast.className.replace('show', ''); }, 3000);
+        }
 
         function getCookie(name) {
             let cookieValue = null;
@@ -138,18 +236,20 @@
             return cookieValue;
         }
 
-        function updateAlertState(alertId) {
-            fetch("/backoffice/update_alert_state/", {
+        function updateAlertState(alert_id) {
+            fetch(`/backoffice/update_alert_state/${alert_id}/`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     "X-CSRFToken": getCookie("csrftoken") // Assurez-vous d'inclure le jeton CSRF dans les en-têtes
                 },
-                body: JSON.stringify({ alert_id: alertId })
+                body: JSON.stringify({ alert_id: alert_id })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
+                    showToast()
+                    fetchAlerts(); // Rappelle la liste des alertes après la mise à jour de l'état
                     // Mettre à jour l'état de l'alerte dans le DOM ou effectuer d'autres actions
                     console.log("Alert state updated successfully");
                 } else {
@@ -161,6 +261,49 @@
             });
         }
 
+        let currentPageAlert = 1;
+        const pageSizeAlert = 10;
+        let isLoadingAlert = false;
+        let isLastPageAlert = false;
+        let searchQuery = '';
+        let startDate = '';
+        let endDate = '';
+
+        async function fetchAlerts(reset = false) {
+            if (isLoadingAlert || isLastPageAlert) return;
+
+            isLoadingAlert = true;
+            document.getElementById('loadingAlert').style.display = 'block';
+
+            try {
+                const response = await fetch(`/backoffice/alert_list/?page=${currentPageAlert}&size=${pageSizeAlert}&search=${searchQuery}&start_date=${startDate}&end_date=${endDate}${reset ? '&reset=true' : ''}`, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    const alerts = data.alerts;
+
+                    if (alerts.length < pageSizeAlert) {
+                        isLastPageAlert = true;
+                    }
+
+                    alerts.forEach(alert => {
+                        addAlertToTable(alert);
+                    });
+
+                    currentPageAlert++;
+                } else {
+                    console.error('Erreur lors du chargement des alertes');
+                }
+            } catch (error) {
+                console.error('Erreur réseau:', error);
+            } finally {
+                isLoadingAlert = false;
+                document.getElementById('loadingAlert').style.display = 'none';
+            }
+        }
 
         function addAlertToTable(alert) {
             const tableBody = document.getElementById('alertTableBody');
@@ -169,23 +312,61 @@
                 <td>${alert.alert_type}</td>
                 <td>${alert.comment}</td>
                 <td>${alert.alert_datetime}</td>
-                <!-- Ajoutez d'autres colonnes au besoin -->
+                <td>${alert.child__prenom}</td>
+                <td>${alert.child__nom}</td>
+                <td>${alert.child__phone_number}</td>
+                <td style="color: ${alert.state === 'traite' ? 'green' : 'red'};">${alert.state}</td>
+                <td>
+                    <button onclick="updateAlertState('${alert.id}')"><i class="fa-solid fa-pen"></i></button>
+                </td>
             `;
             tableBody.appendChild(row);
         }
 
-        async function fetchAlerts() {
-            const response = await fetch("/backoffice/alert_list/");
-            if (response.ok) {
-                const data = await response.json();
-                const alerts = data.alerts;
-                alerts.forEach(alert => {
-                    addAlertToTable(alert);
-                });
+        function handleScrollAlert() {
+            const scrollableHeight = document.documentElement.scrollHeight;
+            const scrollPosition = window.innerHeight + window.scrollY;
+
+            if (scrollPosition >= scrollableHeight - 100) { // Ajustez le seuil si nécessaire
+                fetchAlerts();
             }
         }
 
+        function handleSearchInput() {
+            const searchInput = document.getElementById('searchInput');
+            searchInput.addEventListener('input', () => {
+                searchQuery = searchInput.value;
+                resetAlerts();
+            });
+        }
+
+        function handleFilter() {
+            const searchInput = document.getElementById('searchInput');
+            const startDateInput = document.getElementById('startDateInput');
+            const endDateInput = document.getElementById('endDateInput');
+            
+            searchQuery = searchInput.value;
+            startDate = startDateInput.value;
+            endDate = endDateInput.value;
+
+            resetAlerts();
+        }
+
+        function resetAlerts() {
+            currentPageAlert = 1;
+            isLastPageAlert = false;
+            document.getElementById('alertTableBody').innerHTML = ''; // Effacez le contenu de la table pour recharger les données
+            fetchAlerts(true); // Passez `true` pour réinitialiser la pagination côté serveur
+        }
+
+        window.addEventListener('scroll', handleScrollAlert);
+        document.addEventListener('DOMContentLoaded', () => {
+            handleSearchInput();
+            resetAlerts();
+        });
+
         document.addEventListener('DOMContentLoaded', fetchAlerts);
+
     </script>
 </body>
 </html>

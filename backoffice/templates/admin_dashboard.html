@@ -13,6 +13,7 @@
             /* border: solid 2px black !important; */
             flex-direction: row;
             width: 15%;
+            position: fixed;
         }
         .sidbard_teste {
             display: flex;
@@ -108,34 +109,37 @@
             display: flex;
             flex-direction: column;
             height: 100vh;
-            /* border: solid 2px red !important; */
-            width: 85%;
+            width: 98%;
+
         }
         .header_admin_reduit {
             display: flex;
             flex-direction: column;
             height: 100vh;
-            /* border: solid 2px red !important; */
             width: 100%;
         }
         .navebar {
             display: flex;
             flex-direction: row;
             height: 5vh;
-            /* border: solid 2px red !important; */
-            width: 100%;
+            width: 80%;
+            margin-left: 20%;
             align-items: center;
             justify-content: space-between;
+            position: fixed;
+            background-color: #fff;
+            z-index: 1;
         }
       
-        .mes_liste{
+        .mes_liste {
             display: flex;
             flex-direction: column;
-            height: 5vh;
-            /* border: solid 2px red !important; */
-            width: 100%;
-            padding: 0%;
+            height: 10vh;
+            margin-top: 19%;
+            width: 82%;
+            margin-left: 18%;
         }
+
         .user_actif_liste {
             display: flex;
             flex-direction: column;
@@ -153,9 +157,12 @@
             flex-direction: column;
             height: 25vh;
             /* border: solid 3px rgb(0, 255, 98) !important; */
-            width: 100%;
-            margin-left: 0%;
-            padding-left: 0%;
+            width: 85%;
+            margin-left: 15%;
+            position: fixed;
+            padding-top : 3%;
+            background-color: #fff;
+
         }
 
         .Dashboard_card {
@@ -165,6 +172,10 @@
             width: 100%;
             height: 20vh;
             margin-right: 2%;
+        }
+        .admin_liste_form {
+            display: flex;
+            padding: 0%;
         }
 
     </style>
@@ -296,9 +307,6 @@
              {% include 'leaflet.html' %}
         </div> 
 
-         
-
-
         <div class="admin_liste_form" style="display: none;">
             {% include 'admin_list.html' %}
         </div>
@@ -319,6 +327,7 @@
 
         <!-- restante -->
     </div>
+
 
 
     <script>
