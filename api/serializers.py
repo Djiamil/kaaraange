@@ -63,7 +63,7 @@ class ChildSerializerDetail(serializers.ModelSerializer):
         fields = ['id', 'slug', 'email','phone_number','password', 'prenom', 'nom', 'is_active', 'is_archive',
                   'user_type', 'accepted_terms', 'registration_method', 'otp_token',
                   'gender', 'date_de_naissance', 'type_appareil', 'numeros_urgences',
-                  'ecole', 'allergies']
+                  'ecole', 'allergies',]
         
 class RetrieveAPIView(serializers.ModelSerializer):
         

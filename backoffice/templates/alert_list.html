@@ -85,7 +85,6 @@
         <table class="alert_table">
             <thead>
                 <tr>
-                    <th>ID</th>
                     <th>Type d'Alerte</th>
                     <th>Commentaire</th>
                     <th>Date et Heure de l'Alerte</th>
@@ -101,7 +100,6 @@
                 <!-- Les alertes d'urgence seront ajoutées ici par JavaScript -->
                 {% for alert in alerts %}
                 <tr>
-                    <td>{{ alert.id }}</td>
                     <td>{{ alert.alert_type }}</td>
                     <td>{{ alert.comment }}</td>
                     <td>{{ alert.alert_datetime }}</td>
@@ -168,7 +166,6 @@
             const tableBody = document.getElementById('alertTableBody');
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>${alert.id}</td>
                 <td>${alert.alert_type}</td>
                 <td>${alert.comment}</td>
                 <td>${alert.alert_datetime}</td>

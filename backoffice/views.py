@@ -12,6 +12,7 @@ from .serializers import UserSerializer
 from django.contrib.auth.hashers import make_password
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
+from api.serializers import *
 
 
 
@@ -25,18 +26,32 @@ def admin_login(request):
             email = form.cleaned_data['email']
             password = form.cleaned_data['password']
             user = authenticate(request, email=email, password=password)
-            if user is not None and (user.is_staff or user.user_type == 'ADMIN'):
-                login(request, user)
-                return redirect('admin_dashboard')
+
+            if user is not None:
+                if user.is_staff or user.user_type == 'ADMIN':
+                    login(request, user)
+                    return redirect('admin_dashboard')
+                else:
+                    form.add_error(None, 'Vous n\'avez pas les permissions nécessaires pour accéder à cette interface.')
             else:
-                form.add_error(None, 'Invalid email or password')
+                form.add_error(None, 'Identifiant ou mot de passe incorrect.')
     else:
         form = LoginForm()
+
     return render(request, 'admin_login.html', {'form': form})
 
-@login_required
+# @login_required
+# def admin_dashboard(request):
+#     return render(request, 'admin_dashboard.html')
+
 def admin_dashboard(request):
-    return render(request, 'admin_dashboard.html')
+    # Vous pouvez accéder aux détails de l'utilisateur via request.user
+    user = request.user
+    context = {
+        'user': user
+    }
+    return render(request, 'admin_dashboard.html', context)
+
 
 def admin_logout(request):
     logout(request)
@@ -105,7 +120,7 @@ def utilisateur_actif_view(request):
             parent_actif_liste.append(parent)
         else:
             parent_inactif_liste.append(parent)
-    return render(request, 'admin_list.html', {'users': parent_actif_liste})
+    return render(request, 'utilisateur_actif.html', {'users': parent_actif_liste})
 
 
 def utilisateur_inactif_view(request):
@@ -120,7 +135,7 @@ def utilisateur_inactif_view(request):
             parent_actif_liste.append(parent)
         else:
             parent_inactif_liste.append(parent)
-    return render(request, 'admin_list.html', {"users" :parent_inactif_liste})
+    return render(request, 'utilisateur_inactif.html', {"users" :parent_inactif_liste})
 
 
 def parent_liste_view(request):
@@ -134,15 +149,41 @@ def child_liste_view(request):
 def child_details_view(request, child_id):
     child = get_object_or_404(Child, id=child_id)
     family_members = FamilyMember.objects.filter(child=child).select_related('parent')
-    family_members_data = [
-        {
+    
+    family_members_data = []
+    for member in family_members:
+        member_data = {
+            "child": ChildSerializerDetail(child).data,
+            "child_avatar" : child.avatar.url if child.avatar else None,
             "relation": member.relation,
             "parent_name": member.parent.nom,
+            "parent_firstname": member.parent.prenom,
             "parent_email": member.parent.email,
-            "parent_phone": member.parent.telephone,
+            "parent_phone": member.parent.phone_number,
+            "avatar_url": member.parent.avatar.url if member.parent.avatar else None,
         }
-        for member in family_members
-    ]
+        family_members_data.append(member_data)
+    
+    return JsonResponse({"family_members": family_members_data})
+
+def paren_details_view(request, parent_id):
+    parent = get_object_or_404(Parent, id=parent_id)
+    family_members = FamilyMember.objects.filter(parent=parent).select_related('child')
+
+    family_members_data = []
+    for member in family_members:
+        member_data = {
+            "parent": ParentSerializer(parent).data,
+            "child_avatar": member.parent.avatar.url if member.parent.avatar else None,
+            "relation": member.relation,
+            "parent_name": member.child.nom,
+            "parent_firstname": member.child.prenom,
+            "parent_email": member.child.email,
+            "parent_phone": member.child.phone_number,
+            "avatar_url": parent.avatar.url if parent.avatar else None,
+        }
+        family_members_data.append(member_data)
+
     return JsonResponse({"family_members": family_members_data})
 
 def emergencyAlert_liste_view(request):

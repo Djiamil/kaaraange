@@ -58,6 +58,7 @@
             padding:  5px;
             margin-top: 20px;
         }
+
         .libelle{
             display: flex; color: aliceblue; margin-top: 4px;margin-left: 5px;
         }
@@ -68,11 +69,11 @@
 
         .icon_burger {
             display: flex;
-            /* border: solid 2px red !important; */
             justify-content: center;
             width: 20%;
             margin-left: 3%;
         }
+
         .avatar {
             display: flex;
             justify-content: center;
@@ -80,10 +81,10 @@
         }
 
         .avatar img {
-            border-radius: 50%; /* Makes the image circular */
-            width: 50px; /* Adjust the size as needed */
-            height: 50px; /* Adjust the size as needed */
-            object-fit: cover; /* Ensures the image covers the circle */
+            border-radius: 50%; 
+            width: 60px;
+            height: 60px;
+            object-fit: cover; 
         }
         .deconnexon {
             display: flex;
@@ -179,15 +180,20 @@
         <div class="texte_menu">
 
             <div class="profile_icon">
-                <div class="avatar"><img src="https://img.freepik.com/vecteurs-libre/icone-www_23-2147947355.jpg?size=626&ext=jpg" alt="User Image">
+                <div class="avatar"><img src="/mediafile/avatars/logo.jpeg" alt="User Image">
                 </div>
                 <div class="libelle"> <span>KAARAANGE</span></div>
             </div>
 
             <div class="profile_icon">
-                <div class="avatar"><img src="https://adminlte.io/themes/v3/dist/img/user2-160x160.jpg" alt="User Image">
+                <div class="avatar">
+                    {% if user.avatar %}
+                        <img src="{{ user.avatar.url }}" alt="User Image">
+                    {% else %}
+                        <img src="https://adminlte.io/themes/v3/dist/img/user2-160x160.jpg" alt="Default User Image">
+                    {% endif %}
                 </div>
-                <div class="libelle"> <span>Moustpha Der</span></div>
+                <div class="libelle"> <span><p>{{ user.prenom }} {{ user.nom }}</span></div>
             </div>
 
             <div class="libelle_icone">
@@ -305,7 +311,11 @@
             {% include 'child_liste.html' %}
         </div>
 
+        <div class="admin_liste_form" style="display: none;">
+            {% include 'parent_liste.html' %}
+        </div>
 
+        
 
         <!-- restante -->
     </div>

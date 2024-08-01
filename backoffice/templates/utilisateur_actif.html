@@ -12,7 +12,7 @@
             flex-direction: column;
             height: 100vh;
             width: 100%;
-            border: solid 2px rgb(0, 255, 64) !important;
+            /* border: solid 2px rgb(0, 255, 64) !important; */
             padding: 0%;
             margin: 0%;
         }
@@ -20,7 +20,7 @@
             display: flex;
             flex-direction: row;
             justify-content: space-between;
-            border: solid 2px rgb(13, 31, 17) !important;
+            /* border: solid 2px rgb(13, 31, 17) !important; */
             width: 100%;
             margin-top: 2%;
             margin-bottom: 2%;
@@ -132,12 +132,20 @@
                     <th>Phone Number</th>
                     <th>First Name</th>
                     <th>Last Name</th>
-                    <th>Type</th>
-                    <th>Active</th>
                 </tr>
             </thead>
             <tbody id="userTableBody">
-                <!-- Les utilisateurs actifs seront ajoutés ici par JavaScript -->
+                {% for user in users %}
+                <tr>
+                    <!-- <td>{{ user.id }}</td> -->
+                    <td><img src="/mediafile/{{user.avatar}}" alt="Avatar" style="width:50px;height:50px;border-radius:50%;"></td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.phone_number }}</td>
+                    <td>{{ user.prenom }}</td>
+                    <td>{{ user.nom }}</td>
+                    <!-- <td>{{ user.is_active }}</td> -->
+                </tr>
+                {% endfor %}
             </tbody>
         </table>
     </div>
