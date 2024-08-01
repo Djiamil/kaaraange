@@ -88,7 +88,7 @@ class User(AbstractBaseUser, PermissionsMixin, SafeDeleteModel):
     REQUIRED_FIELDS = ['phone_number']
  
     def __str__(self):
-        return self.email
+        return self.email or "No Email"
 
     def get_by_natural_key(self, email):
         return self.get(email=email)
@@ -102,6 +102,7 @@ class Parent(User):
 class Child(User):
     date_de_naissance = models.DateField()
     type_appareil = models.CharField(max_length=100)
+    vous_appelle_til = models.CharField(max_length=100, blank=True, null=True)
     numeros_urgences = models.TextField()
     ecole = models.CharField(max_length=100, blank=True, null=True)
 
@@ -226,6 +227,19 @@ class Allergy(models.Model):
 
     def __str__(self):
         return f"{self.allergy_type} allergy for {self.child.nom}"
+    
+# Model pour stocker les probleme medicaux de l'enfant
+class MedicalIssue(models.Model):
+    slug = models.SlugField(default=uuid.uuid1, unique=True)
+    id = models.AutoField(primary_key=True)
+    child = models.ForeignKey(Child, related_name='medical_issues', on_delete=models.CASCADE)
+    issue_type = models.CharField(max_length=100)  # Type de problème médical
+    description = models.TextField(blank=True, null=True)
+    date_identified = models.DateField(default=timezone.now)
+    treatment_details = models.TextField(blank=True, null=True)  # Détails sur le traitement
+
+    def __str__(self):
+        return f"{self.issue_type} issue for {self.child.nom}"
 
 # Model pour stocker les numero d'urgence a contacter pour les alerte des enfant
 class EmergencyContact(models.Model):
@@ -262,6 +276,10 @@ class EmergencyAlert(models.Model):
     comment = models.TextField()
     alert_datetime = models.DateTimeField(auto_now_add=True)
     state = models.CharField(max_length=20, choices=ALERT_STATE_CHOICES, default='en_attente')
+    latitude = models.CharField(max_length=50, blank=True, null=True)  # ou une longueur appropriée pour les coordonnées
+    longitude = models.CharField(max_length=50, blank=True, null=True)  # ou une longueur appropriée pour les coordonnées
+    adresse = models.CharField(max_length=255, blank=True, null=True)
+    datetime_localisation = models.DateTimeField(default=timezone.now)
 
 
     def __str__(self):

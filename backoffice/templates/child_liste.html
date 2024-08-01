@@ -197,6 +197,7 @@
                 {% endfor %}
             </tbody>
         </table>
+        <div id="loading">Chargement...</div>
     </div>
 
     <!-- Modal for family details -->
@@ -214,6 +215,47 @@
     <!-- Scripts should be at the end of the body -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script>
+
+        let currentPage = 1;
+        const pageSize = 10;
+        let isLoading = false;
+        let isLastPage = false;
+        async function fetchChilds(reset = false) {
+            if (isLoading || isLastPage) return;
+
+            isLoading = true;
+            document.getElementById('loading').style.display = 'block';
+
+            try {
+                const response = await fetch(`/backoffice/child_liste/?page=${currentPage}&size=${pageSize}${reset ? '&reset=true' : ''}`, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest' // Indiquez que c'est une requête AJAX
+                    }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    const users = data.child_liste;
+
+                    if (users.length < pageSize) {
+                        isLastPage = true;
+                    }
+
+                    users.forEach(user => {
+                        addUserToTable(user);
+                    });
+
+                    currentPage++;
+                } else {
+                    console.error('Erreur lors du chargement des enfants');
+                }
+            } catch (error) {
+                console.error('Erreur réseau:', error);
+            } finally {
+                isLoading = false;
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+        
         function addUserToTable(user) {
             const tableBody = document.getElementById('userTableBody');
             const row = document.createElement('tr');
@@ -227,17 +269,23 @@
             `;
             tableBody.appendChild(row);
         }
+        function handleScroll() {
+            const scrollableHeight = document.documentElement.scrollHeight;
+            const scrollPosition = window.innerHeight + window.scrollY;
 
-        async function fetchParents() {
-            const response = await fetch("/backoffice/child_liste/");
-            if (response.ok) {
-                const data = await response.json();
-                const users = data.parent_actif_liste;
-                users.forEach(user => {
-                    addUserToTable(user);
-                });
+            if (scrollPosition >= scrollableHeight - 100) { // Ajustez le seuil si nécessaire
+                fetchChilds();
             }
         }
+
+        window.addEventListener('scroll', handleScroll);
+                document.addEventListener('DOMContentLoaded', () => {
+            // Réinitialisez les variables de pagination lorsque la page est chargée
+            currentPage = 1;
+            isLastPage = false;
+            document.getElementById('userTableBody').innerHTML = ''; // Effacez le contenu de la table pour recharger les données
+            fetchChilds(true); // Passez `true` pour réinitialiser la pagination côté serveur
+        });
 
         async function viewDetails(childId) {
             const response = await fetch(`/backoffice/child_details/${childId}/`);
@@ -327,7 +375,7 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', fetchParents);
+        document.addEventListener('DOMContentLoaded', fetchChilds);
 
         document.querySelector('.close').onclick = function() {
             document.getElementById('familyDetailsModal').style.display = 'none';
