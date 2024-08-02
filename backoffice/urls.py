@@ -8,6 +8,7 @@ urlpatterns = [
     path('dashboard/admins/', views.admin_list, name='admin_list'),
     path('add_admin/', views.UserApiViews.as_view(), name='add_admin'),
     path('admin_list/', views.admin_list_view, name='admin_list'),
+    path('lefletalerts/', views.lefletealert_list, name='alert_list'),
     path('utilisateur_actif/', views.utilisateur_actif_view, name='utilisateur_actif'),
     path('utilisateur_inactif/', views.utilisateur_inactif_view, name='utilisateur_inactif'),
     path('parent_liste/', views.parent_liste_view, name='parent_liste'),
@@ -17,4 +18,4 @@ urlpatterns = [
     path('leaflet_carte/', views.child_list_view, name='leaflet_carte'),
     path('child_details/<int:child_id>/', views.child_details_view, name='child_details'),
     path('parent_details/<int:parent_id>/', views.paren_details_view, name='parent_details'),
-]
+    ]
