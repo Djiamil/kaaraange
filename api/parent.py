@@ -202,7 +202,7 @@ class CounteUserActifAndUserInactif(generics.GenericAPIView):
             else:
                 parent_inactif_count += 1
         nb_enfant = Child.objects.all().count()
-        nb_alerts = EmergencyAlert.objects.all().count()
+        nb_alerts = EmergencyAlert.objects.filter(state="en_attente").count()
         return Response({
             "data": {
                 "nombre_actif": parent_actif_count,
@@ -325,12 +325,18 @@ class SendAlertAllEmergenctContactForParentToChild(generics.RetrieveAPIView):
         serializer_class = EmergencyAlertSerializer
         def post(self, request, *args, **kwargs):
             slug = kwargs.get('slug')
+            latitude = request.data.get('latitude', '')
+            longitude = request.data.get('longitude', '')
+            adresse = request.data.get('adresse', '')
             try:
                 child = Child.objects.filter(slug=slug).first()
                 alert = EmergencyAlert.objects.create(
                     child=child,
                     alert_type= "Prévenu par l'enfant",
-                    comment= "Je me suis perdu"
+                    comment= "Je me suis perdu",
+                    latitude=latitude,
+                    longitude=longitude,
+                    adresse=adresse
                 )
                 family_members = FamilyMember.objects.filter(child=child)
                 emergency_contacts = []
@@ -341,7 +347,7 @@ class SendAlertAllEmergenctContactForParentToChild(generics.RetrieveAPIView):
                         for contact in contacts:
                             emergency_contacts.append(contact)
                 for contact in emergency_contacts:
-                    text = f"Bonjour {contact.name}, une alerte de type {alert.alert_type} a été déclenchée pour {child.prenom}. Commentaire: {alert.comment}"
+                    text = f"Vous avez reçu une alerte de votre enfant {child.prenom}."
                     send_sms(contact.phone_number, text)
                     AlertNotification.objects.create(alert=alert, contact=contact)
                 return Response({'data': None, 'message': 'Alert created and emergency contacts notified.',"success": True,"code" : 200}, status=status.HTTP_201_CREATED)

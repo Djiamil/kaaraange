@@ -46,7 +46,10 @@ urlpatterns = [
     path('daily_trajectory/<slug:slug>/', child.DailyTrajectoryView.as_view(), name='daily-trajectory'),
     path('child_update/<slug:slug>/', child.UpdateChild.as_view(), name='update_child'), 
     path('add_allergy/', child.ChildAlergyApiViews.as_view(), name='child_add_allergy'),
-    # fin des routes qui conserne l'enfant
+    path('parent_register_child/', child.parentResisterChild.as_view(), name='parent_register_child'),
+    path('parent_validate_child_subscriber/<slug:slug>/', child.parentValidateChildDataAndLink.as_view(), name='parent_validate_child_subscriber'),
+
+    # fin des routes qui conserne l'enfant  
 
     # les url sur le model qui link le parent au child
     path('lislinkchildtoparent/', views.lislinkchildtoparent.as_view(), name='lislinkchildtoparent'),

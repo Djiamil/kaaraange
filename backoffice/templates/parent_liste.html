@@ -206,6 +206,7 @@
                 {% endfor %}
             </tbody>
         </table>
+        <div id="loading" style="display:none;">Chargement...</div>
     </div>
 
         <!-- Modal for family details -->
@@ -222,35 +223,82 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script>
-        function addUserToTable(user) {
+let currentPage = 1;
+const pageSize = 10;
+let isLoading = false;
+let isLastPage = false;
+
+async function fetchParents(reset = false) {
+    if (isLoading || isLastPage) return;
+
+    isLoading = true;
+    document.getElementById('loading').style.display = 'block';
+
+    try {
+        const response = await fetch(`/backoffice/parent_liste/?page=${currentPage}&size=${pageSize}${reset ? '&reset=true' : ''}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest' // Indiquez que c'est une requête AJAX
+            }
+        });
+        if (response.ok) {
+            const data = await response.json();
+            const users = data.parent_actif_liste;
+
+            if (users.length < pageSize) {
+                isLastPage = true;
+            }
+
+            users.forEach(user => {
+                addUserToTable(user);
+            });
+
+            currentPage++;
+        } else {
+            console.error('Erreur lors du chargement des utilisateurs');
+        }
+    } catch (error) {
+        console.error('Erreur réseau:', error);
+    } finally {
+        isLoading = false;
+        document.getElementById('loading').style.display = 'none';
+    }
+}
+
+function addUserToTable(user) {
     const tableBody = document.getElementById('userTableBody');
     const row = document.createElement('tr');
     row.innerHTML = `
-        <td>${user.id}</td>
+        <td><img src="/mediafile/${user.avatar}" alt="Avatar" style="width:50px;height:50px;border-radius:50%;"></td>
         <td>${user.email}</td>
-        <td>${user.phone_number ? user.phone_number : ''}</td>
+        <td>${user.phone_number || ''}</td>
         <td>${user.prenom}</td>
         <td>${user.nom}</td>
-        <td>${user.user_type}</td>
-        <td><img src="/mediafile/{{user.avatar}}" alt="Avatar" style="width:50px;height:50px;border-radius:50%;"></td> <!-- Utilisation de template string correcte -->
-        <td>${user.is_active ? 'Oui' : 'Non'}</td>
-        <td class="action-cell"><button class="center-button" onclick="viewsDetailParent('${user.id}')"><i class="fa-solid fa-plus-minus"></i></button></td>
-
+        <td>${user.adresse}</td>
+        <td style="align-items: center;">
+            <button class="center-button" onclick="viewsDetailParent('${user.id}')"><i class="fa-solid fa-plus-minus"></i></button>
+        </td>
     `;
     tableBody.appendChild(row);
 }
 
-    async function fetchParents() {
-        const response = await fetch("/backoffice/parent_liste/");
-        if (response.ok) {
-            const data = await response.json(); // Obtenir les données JSON
-            const users = data.parent_actif_liste; // Accéder à la propriété parent_actif_liste
-            const tableBody = document.getElementById('userTableBody');
-            users.forEach(user => {
-                addUserToTable(user);
-            });
-        }
+function handleScroll() {
+    const scrollableHeight = document.documentElement.scrollHeight;
+    const scrollPosition = window.innerHeight + window.scrollY;
+
+    if (scrollPosition >= scrollableHeight - 100) { // Ajustez le seuil si nécessaire
+        fetchParents();
     }
+}
+
+window.addEventListener('scroll', handleScroll);
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Réinitialisez les variables de pagination lorsque la page est chargée
+    currentPage = 1;
+    isLastPage = false;
+    document.getElementById('userTableBody').innerHTML = ''; // Effacez le contenu de la table pour recharger les données
+    fetchParents(true); // Passez `true` pour réinitialiser la pagination côté serveur
+});
     async function viewsDetailParent(parentId) {
             const response = await fetch(`/backoffice/parent_details/${parentId}/`);
             if (response.ok) {
@@ -339,7 +387,7 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', fetchParents);
+        // document.addEventListener('DOMContentLoaded', fetchParents);
         
         document.querySelector('.close').onclick = function() {
             document.getElementById('familyDetailsModal').style.display = 'none';

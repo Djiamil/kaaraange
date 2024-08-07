@@ -137,14 +137,78 @@ def utilisateur_inactif_view(request):
             parent_inactif_liste.append(parent)
     return render(request, 'utilisateur_inactif.html', {"users" :parent_inactif_liste})
 
+from django.core.paginator import Paginator
 
 def parent_liste_view(request):
-    parent = Parent.objects.all()
-    return render(request, 'parent_liste.html', {"users" : parent})
+    # Réinitialiser la page courante si le paramètre de requête 'reset' est présent
+    if request.GET.get('reset') == 'true':
+        request.session.pop('currentPageParent', None)
+
+    search_query = request.GET.get('search', '')  # Définir search_query en dehors de la condition
+
+    # Récupérez le numéro de page et la taille de la page depuis la requête ou la session
+    page_number = request.GET.get('page', request.session.get('currentPageParent', 1))
+    page_size = request.GET.get('size', 10)
+    
+    # Récupérez les objets Parent
+    parent_list = Parent.objects.all()
+    if search_query:
+        parent_list = parent_list.filter(prenom__icontains=search_query)
+    
+    # Configurez la pagination
+    paginator = Paginator(parent_list, page_size)
+    page = paginator.get_page(page_number)
+    
+    # Mettez à jour la session avec la page actuelle
+    request.session['currentPageParent'] = page.number
+    
+    data = {
+        "parent_actif_liste": list(page.object_list.values('id', 'email', 'phone_number', 'prenom', 'nom', 'adresse', 'avatar', 'is_active')),
+        "has_next": page.has_next(),
+        "has_previous": page.has_previous(),
+        "number": page.number,
+        "total_pages": paginator.num_pages,
+        "total_count": paginator.count
+    }
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse(data)
+    
+    return render(request, 'parent_liste.html', {"users": data['parent_actif_liste']})
+
 
 def child_liste_view(request):
-    parent = Child.objects.all()
-    return render(request, 'child_liste.html', {"users" : parent})
+    # Réinitialiser la page courante si le paramètre de requête 'reset' est présent
+    if request.GET.get('reset') == 'true':
+        request.session.pop('current_page_child', None)
+    
+    # Récupérez le numéro de page et la taille de la page depuis la requête ou la session
+    page_number = request.GET.get('page', request.session.get('current_page_child', 1))
+    page_size = request.GET.get('size', 10)
+    
+    # Récupérez les objets Child
+    child_list = Child.objects.all()
+    
+    # Configurez la pagination
+    paginator = Paginator(child_list, page_size)
+    page = paginator.get_page(page_number)
+    
+    # Mettez à jour la session avec la page actuelle
+    request.session['current_page_child'] = page.number
+    
+    data = {
+        "child_liste": list(page.object_list.values('id', 'email', 'phone_number', 'prenom', 'nom', 'avatar', 'is_active')),
+        "has_next": page.has_next(),
+        "has_previous": page.has_previous(),
+        "number": page.number,
+        "total_pages": paginator.num_pages,
+        "total_count": paginator.count
+    }
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse(data)
+    
+    return render(request, 'child_liste.html', {"users": data['child_liste']})
 
 def child_details_view(request, child_id):
     child = get_object_or_404(Child, id=child_id)
@@ -187,13 +251,58 @@ def paren_details_view(request, parent_id):
     return JsonResponse({"family_members": family_members_data})
 
 def emergencyAlert_liste_view(request):
-    # Sélectionnez toutes les alertes d'urgence en incluant les informations sur l'enfant associé
-    alerts = EmergencyAlert.objects.select_related('child').all()
-    return render(request, "alert_list.html", {"alerts": alerts})
+    # Réinitialiser la page courante si le paramètre de requête 'reset' est présent
+    if request.GET.get('reset') == 'true':
+        request.session.pop('current_page_alert', None)
+    
+    # Récupérez le numéro de page et la taille de la page depuis la requête ou la session
+    page_number = request.GET.get('page', request.session.get('current_page_alert', 1))
+    page_size = request.GET.get('size', 10)
+    search_query = request.GET.get('search', '')
+    start_date = request.GET.get('start_date', '')
+    end_date = request.GET.get('end_date', '')
 
-def update_alert_state(request):
+    # Récupérez les objets EmergencyAlert avec filtre sur le prénom de l'enfant et dates
+    alert_list = EmergencyAlert.objects.select_related('child')
+    alert_list = alert_list.order_by('-alert_datetime')
+
+
+    if search_query:
+        alert_list = alert_list.filter(child__prenom__icontains=search_query)
+
+
+    if start_date:
+        alert_list = alert_list.filter(alert_datetime__gte=start_date)
+
+    if end_date:
+        alert_list = alert_list.filter(alert_datetime__lte=end_date)
+
+    # Ajoutez l'ordre de tri par date décroissante
+    
+    # Configurez la pagination
+    paginator = Paginator(alert_list, page_size)
+    page = paginator.get_page(page_number)
+    
+    # Mettez à jour la session avec la page actuelle
+    request.session['current_page_alert'] = page.number
+    
+    data = {
+        "alerts": list(page.object_list.values('id', 'alert_type', 'comment', 'alert_datetime', 'state', 'child__prenom', 'child__nom', 'child__phone_number')),
+        "has_next": page.has_next(),
+        "has_previous": page.has_previous(),
+        "number": page.number,
+        "total_pages": paginator.num_pages,
+        "total_count": paginator.count
+    }
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse(data)
+    
+    return render(request, 'alert_list.html', {"alerts": data['alerts']})
+
+
+def update_alert_state(request, alert_id):
     if request.method == "POST":
-        alert_id = request.POST.get("alert_id")
         try:
             alert = EmergencyAlert.objects.get(id=alert_id)
             alert.state = "traite"  # Mettez à jour l'état de l'alerte

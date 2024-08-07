@@ -49,21 +49,41 @@ class ParentChildLinkSerializer(serializers.ModelSerializer):
         model = ParentChildLink
         fields = ['id','slug', 'child', 'qr_code']
 
+class MedicalIssueSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MedicalIssue
+        fields = ['id', 'issue_type', 'description', 'date_identified', 'treatment_details']
+
 class ChildAlergySerializer(serializers.ModelSerializer):
     class Meta:
         model = Allergy
         fields = ['id', 'child', 'allergy_type', 'description', 'date_identified']
-        
-class ChildSerializerDetail(serializers.ModelSerializer):
-    allergies = ChildAlergySerializer(read_only=True, many=True)
 
+
+        
+class LocationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Location
+        fields = '__all__'
+
+class ChildSerializerDetail(serializers.ModelSerializer):
+    medical_issues = MedicalIssueSerializer(read_only=True,many=True)
+    allergies = ChildAlergySerializer(read_only=True, many=True)
+    last_location = serializers.SerializerMethodField()
     
     class Meta:
         model = Child
-        fields = ['id', 'slug', 'email','phone_number','password', 'prenom', 'nom', 'is_active', 'is_archive',
+        fields = ['id', 'slug', 'email', 'phone_number', 'password', 'prenom', 'nom', 'is_active', 'is_archive',
                   'user_type', 'accepted_terms', 'registration_method', 'otp_token',
                   'gender', 'date_de_naissance', 'type_appareil', 'numeros_urgences',
-                  'ecole', 'allergies',]
+                  'ecole', 'allergies', 'medical_issues', 'last_location']
+
+    def get_last_location(self, obj):
+        # Récupère la dernière localisation pour l'enfant
+        last_location = Location.objects.filter(enfant=obj).order_by('-datetime_localisation').first()
+        if last_location:
+            return LocationSerializer(last_location).data
+        return None
         
 class RetrieveAPIView(serializers.ModelSerializer):
         
@@ -71,10 +91,7 @@ class RetrieveAPIView(serializers.ModelSerializer):
             model = Parent
             fields = '__all__'
 
-class LocationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Location
-        fields = '__all__'
+
 
 class FamilyMemberSerializer(serializers.ModelSerializer):
     class Meta:
