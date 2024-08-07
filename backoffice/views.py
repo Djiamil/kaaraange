@@ -13,6 +13,7 @@ from django.contrib.auth.hashers import make_password
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from api.serializers import *
+from django.db.models import Q
 
 
 
@@ -318,3 +319,35 @@ def child_list_view(request):
     children = Child.objects.all()
     return render(request, 'leaflet.html', {"children": children})
 
+
+def lefletealert_list(request):
+    search_text = request.GET.get('search', '').lower()
+
+    try:
+        # Construire la requête de filtre avec Q objects
+        if search_text:
+            query = Q(child__prenom__icontains=search_text) | \
+                    Q(child__nom__icontains=search_text) | \
+                    Q(child__phone_number__icontains=search_text)
+            lefletealerts = EmergencyAlert.objects.filter(query).select_related('child')
+        else:
+            lefletealerts = EmergencyAlert.objects.select_related('child').all()
+
+        alert_data = [
+            {
+                'type': lefletealert.alert_type,
+                'latitude': lefletealert.latitude,
+                'longitude': lefletealert.longitude,
+                'comment': lefletealert.comment,
+                'adresse': lefletealert.adresse,
+                'child': {
+                    'prenom': lefletealert.child.prenom,
+                    'nom': lefletealert.child.nom,
+                    'phone_number': lefletealert.child.phone_number
+                }
+            }
+            for lefletealert in lefletealerts
+        ]
+        return JsonResponse(alert_data, safe=False)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
