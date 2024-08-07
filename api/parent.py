@@ -14,6 +14,9 @@ from .services.user_service import *
 from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
 from django.shortcuts import render, get_object_or_404
+from firebase_admin import credentials, messaging 
+
+
 
 
 
@@ -319,7 +322,19 @@ class ParentAddEmergencyContactForChildAlert(generics.RetrieveAPIView):
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# views pour alerter les membre de famille d'un enfant 
+# views pour alerter les membre de famille d'un enfant et envoyer la notification via firebase
+
+def send_simple_notification(token,text):
+    message = messaging.Message(
+        notification=messaging.Notification(
+            title='Bonjour,',
+            body=text,
+        ),
+        token=token,
+    )
+    response = messaging.send(message)
+    print('Successfully sent message:', response)
+
 class SendAlertAllEmergenctContactForParentToChild(generics.RetrieveAPIView):
         queryset = EmergencyAlert.objects.all()
         serializer_class = EmergencyAlertSerializer
@@ -346,15 +361,35 @@ class SendAlertAllEmergenctContactForParentToChild(generics.RetrieveAPIView):
                         contacts = EmergencyContact.objects.filter(parent=parent)
                         for contact in contacts:
                             emergency_contacts.append(contact)
+                    print(parent.email)
+                    if parent.fcm_token :
+                        token =parent.fcm_token
+                        print(token)
+                        text = f"Vous avez reçu une alerte de votre enfant {child.prenom}."
+                        send_simple_notification(token,text)
+                    AlertNotification.objects.create(alert=alert,type_notification='alerte', parent=parent)
                 for contact in emergency_contacts:
                     text = f"Vous avez reçu une alerte de votre enfant {child.prenom}."
                     send_sms(contact.phone_number, text)
-                    AlertNotification.objects.create(alert=alert, contact=contact)
                 return Response({'data': None, 'message': 'Alert created and emergency contacts notified.',"success": True,"code" : 200}, status=status.HTTP_201_CREATED)
             except Child.DoesNotExist:
-                return Response({'data': None, 'message': 'Child not found', 'success':True, "code" : 200}, status=status.HTTP_404_NOT_FOUND)
+                return Response({'data': None, 'message': 'Child not found', 'success':True, "code" : 400}, status=status.HTTP_404_NOT_FOUND)
 
+# Views pour lister les notification d'alerte recu par le parent
 
+class ParentNotificationListe(generics.ListAPIView):
+    serializer_class = AlertNotificationSerializer
+
+    def get_queryset(self):
+        slug = self.kwargs.get('slug')
+        return AlertNotification.objects.filter(parent__slug=slug)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        if not queryset.exists():
+            return Response({'data': None, 'message': 'Aucune notification pour ce parent', 'success': False, "code" : 400}, status=status.HTTP_404_NOT_FOUND)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({'data': serializer.data, 'message': 'Notifications du parent.', "success": True, "code": 200}, status=status.HTTP_200_OK)
 
 
 

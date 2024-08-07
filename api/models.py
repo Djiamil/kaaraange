@@ -7,6 +7,12 @@ from django.contrib.auth.models import BaseUserManager
 import uuid 
 from django.utils import timezone
 
+from firebase_admin import messaging
+from api.firebase_setup import initialize_firebase
+
+# Initialiser Firebase
+initialize_firebase()
+
 
 
 ADMIN = 'admin'
@@ -81,6 +87,8 @@ class User(AbstractBaseUser, PermissionsMixin, SafeDeleteModel):
     gender = models.CharField(max_length=10, null=True, blank=True, verbose_name="Genre")
     objects = CustomUserManager()
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True, verbose_name="Avatar")
+    fcm_token = models.CharField(max_length=255, null=True, blank=True, verbose_name="FCM Token")  # Ajout du FCM Token
+
 
 
     _safedelete_policy = SOFT_DELETE_CASCADE
@@ -287,12 +295,19 @@ class EmergencyAlert(models.Model):
 
     
 class AlertNotification(models.Model):
+    NOTIFICATION_TYPE = [
+    ('DEMANDE', 'demande'),
+    ('alerte', 'alerte'),
+    ]
     alert = models.ForeignKey(EmergencyAlert, on_delete=models.CASCADE, related_name='notifications')
-    contact = models.ForeignKey(EmergencyContact, on_delete=models.CASCADE)
+    contact = models.ForeignKey(EmergencyContact, on_delete=models.CASCADE, blank=True, null=True, related_name='notifications_contact')
     notified_at = models.DateTimeField(auto_now_add=True)
+    type_notification = models.CharField(max_length=10, choices=NOTIFICATION_TYPE, blank=True, null=True)
+    parent = models.ForeignKey(Parent, on_delete=models.CASCADE,null=True, blank=True, related_name='notification_parents')
 
     def __str__(self):
-        return f"Notification for {self.contact.name} at {self.notified_at}"
+        contact_name = self.contact.name if self.contact else "Unknown contact"
+        return f"Notification for {contact_name} at {self.notified_at}"
     
     
 class EmergencyNumber(models.Model):

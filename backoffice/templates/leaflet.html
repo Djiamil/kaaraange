@@ -47,88 +47,87 @@
         <button onclick="searchLocation()">Rechercher</button>
     </div>
     <div id="map"></div>
-    <!-- Container pour le champ de recherche -->
-
 
     <script>
         // Initialisation de la carte
-        var map = L.map('map').setView([51.505, -0.09], 13);
+        var map = L.map('map').setView([14.7108, -17.4710], 13); // Zoom initial
 
         // Ajouter une couche de tuiles
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
-        // Ajouter un marqueur initial
-        L.marker([51.505, -0.09]).addTo(map)
-            .bindPopup('A pretty CSS3 popup.<br> Easily customizable.')
-            .openPopup();
-
-        // Fonction de succès pour la géolocalisation
-        function success(position) {
-            var lat = position.coords.latitude;
-            var lon = position.coords.longitude;
-
-            // Centrer la carte sur la position de l'utilisateur
-            map.setView([lat, lon], 13);
-
-            // Ajouter un marqueur à la position de l'utilisateur
-            L.marker([lat, lon]).addTo(map)
-                .bindPopup('You are here.')
-                .openPopup();
-        }
-
-        // Fonction d'erreur pour la géolocalisation
-        function error() {
-            alert("Geolocation not supported or permission denied.");
-        }
-
-        // Vérifier si le navigateur supporte la géolocalisation
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(success, error);
-        } else {
-            alert("Geolocation not supported by this browser.");
-        }
-
-        // Exemple de données géospatiales à partir du contexte Django
-        var locations = [
-            {% for child in children %}
-                {"name": "{{ child.name }}", "coords": [{{ child.latitude }}, {{ child.longitude }}]},
-            {% endfor %}
-        ];
-
-        // Ajouter des marqueurs pour chaque location
-        locations.forEach(function(location) {
-            L.marker(location.coords).addTo(map)
-                .bindPopup(location.name);
+        // Définir une icône personnalisée rouge
+        var redIcon = L.icon({
+            iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+            iconSize: [25, 41], // Taille de l'icône
+            iconAnchor: [12, 41], // Point d'ancrage de l'icône
+            popupAnchor: [1, -34], // Point d'ancrage du popup
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+            shadowSize: [41, 41] // Taille de l'ombre
         });
+
+        // Fonction pour obtenir les alertes depuis l'API
+        function loadAlerts() {
+            fetch('/backoffice/lefletalerts/')
+                .then(response => response.json())
+                .then(lefetealerts => {
+                    console.log(lefetealerts); // Affiche les données dans la console
+                    lefetealerts.forEach(lefetealert => {
+                        if (lefetealert.latitude && lefetealert.longitude) {
+                            // Convertir les coordonnées en nombres flottants
+                            var lat = parseFloat(lefetealert.latitude);
+                            var lon = parseFloat(lefetealert.longitude);
+                            L.marker([lat, lon], { icon: redIcon }).addTo(map)
+                                .bindPopup(`
+                                <b>Type:</b> ${lefetealert.type}<br>
+                                <b>Comment:</b> ${lefetealert.comment}<br>
+                                <b>Adresse:</b> ${lefetealert.adresse}<br>
+                                <b>Nom child:</b> ${lefetealert.child.prenom} ${lefetealert.child.nom}<br>
+                                <b>Téléphone:</b> ${lefetealert.child.phone_number}
+                            `);
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching alerts:', error);
+                });
+        }
+
+        // Charger les alertes lorsque la page est prête
+        document.addEventListener('DOMContentLoaded', loadAlerts);
 
         // Fonction de recherche de zone
         function searchLocation() {
             var searchText = document.getElementById('search').value;
             if (searchText) {
-                fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${searchText}`)
+                fetch(`/backoffice/lefletalerts/?search=${encodeURIComponent(searchText)}`)
                     .then(response => response.json())
-                    .then(data => {
-                        if (data && data.length > 0) {
-                            var firstResult = data[0];
-                            var lat = firstResult.lat;
-                            var lon = firstResult.lon;
-
-                            // Centrer et zoomer la carte sur la zone recherchée
-                            map.setView([lat, lon], 13);
-
-                            // Ajouter un marqueur à la zone recherchée
-                            L.marker([lat, lon]).addTo(map)
-                                .bindPopup(firstResult.display_name)
-                                .openPopup();
-                        } else {
-                            alert("Zone non trouvée.");
-                        }
+                    .then(alerts => {
+                        map.eachLayer(layer => {
+                            if (layer instanceof L.Marker) {
+                                map.removeLayer(layer);
+                            }
+                        });
+                        
+                        alerts.forEach(alert => {
+                            if (alert.latitude && alert.longitude) {
+                                var lat = parseFloat(alert.latitude);
+                                var lon = parseFloat(alert.longitude);
+                                L.marker([lat, lon], { icon: redIcon }).addTo(map)
+                                    .bindPopup(`
+                                        <b>Type:</b> ${alert.type}<br>
+                                        <b>Comment:</b> ${alert.comment}<br>
+                                        <b>Child:</b> ${alert.child.prenom} ${alert.child.nom}<br>
+                                        <b>Phone:</b> ${alert.child.phone_number || 'N/A'}<br>
+                                        <b>Adresse:</b> ${alert.adresse || 'N/A'}
+                                    `);
+                            }
+                        });
                     })
                     .catch(error => {
-                        console.error('Error fetching location:', error);
-                        alert("Erreur lors de la recherche de la zone.");
+                        console.error('Error fetching alerts:', error);
+                        alert("Erreur lors de la recherche des alertes.");
                     });
             } else {
                 alert("Veuillez entrer un texte de recherche.");

@@ -34,7 +34,8 @@ urlpatterns = [
     path('parent_dashbord/<slug:slug>/', parent.ParentDashbord.as_view(), name='parent_dashbord'),
     path('emergency_contact/<slug:slug>/', parent.ParentAddEmergencyContactForChildAlert.as_view(), name='emergency_contact'),
     path('send_alert_for_child/<slug:slug>/', parent.SendAlertAllEmergenctContactForParentToChild.as_view(), name='send_alert_for_child'),
-    # fin des routes qui concerne le parent
+    path('notification_liste/<slug:slug>/', parent.ParentNotificationListe.as_view(), name='notification_parent_liste'),
+    # fin des routes qui concerne le parent 
 
     # debut des routes pour l'enfant  
     path('childs/', child.RegisterChild.as_view(), name='ConfirmRegistration'),

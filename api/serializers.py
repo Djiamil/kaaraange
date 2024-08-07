@@ -104,6 +104,15 @@ class EmergencyContactSerializer(serializers.ModelSerializer):
         fields = ['id', 'parent', 'name', 'phone_number', 'relationship']
 
 class EmergencyAlertSerializer(serializers.ModelSerializer):
+    child = ChildSerializerDetail()
     class Meta:
         model =EmergencyAlert
+        fields = '__all__'
+
+class AlertNotificationSerializer(serializers.ModelSerializer):
+    alert = EmergencyAlertSerializer()
+    parent = ParentSerializer()
+    
+    class Meta:
+        model =AlertNotification
         fields = '__all__'
