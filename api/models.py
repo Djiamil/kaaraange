@@ -260,7 +260,7 @@ class EmergencyContact(models.Model):
     slug = models.SlugField(default=uuid.uuid1)
     parent = models.ForeignKey(Parent, on_delete=models.CASCADE, related_name='emergency_contacts')
     name = models.CharField(max_length=100)
-    phone_number = models.CharField(max_length=15, unique=True)
+    phone_number = models.CharField(max_length=15)
     relationship = models.CharField(max_length=20, choices=RELATIONSHIP_CHOICES)
 
     def __str__(self):

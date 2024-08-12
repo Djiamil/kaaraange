@@ -345,10 +345,11 @@ class SendAlertAllEmergenctContactForParentToChild(generics.RetrieveAPIView):
             adresse = request.data.get('adresse', '')
             try:
                 child = Child.objects.filter(slug=slug).first()
+                text = f"Vous avez reçu une alerte de votre enfant {child.prenom}."
                 alert = EmergencyAlert.objects.create(
                     child=child,
                     alert_type= "Prévenu par l'enfant",
-                    comment= "Je me suis perdu",
+                    comment= text,
                     latitude=latitude,
                     longitude=longitude,
                     adresse=adresse
@@ -361,10 +362,8 @@ class SendAlertAllEmergenctContactForParentToChild(generics.RetrieveAPIView):
                         contacts = EmergencyContact.objects.filter(parent=parent)
                         for contact in contacts:
                             emergency_contacts.append(contact)
-                    print(parent.email)
                     if parent.fcm_token :
                         token =parent.fcm_token
-                        print(token)
                         text = f"Vous avez reçu une alerte de votre enfant {child.prenom}."
                         send_simple_notification(token,text)
                     AlertNotification.objects.create(alert=alert,type_notification='alerte', parent=parent)
@@ -390,14 +389,5 @@ class ParentNotificationListe(generics.ListAPIView):
             return Response({'data': None, 'message': 'Aucune notification pour ce parent', 'success': False, "code" : 400}, status=status.HTTP_404_NOT_FOUND)
         serializer = self.get_serializer(queryset, many=True)
         return Response({'data': serializer.data, 'message': 'Notifications du parent.', "success": True, "code": 200}, status=status.HTTP_200_OK)
-
-
-
-
-
-
-
-        
-
             
 
