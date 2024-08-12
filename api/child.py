@@ -502,7 +502,7 @@ class parentValidateChildDataAndLink(generics.RetrieveAPIView):
             serializer.save()
             # mettre a jour le mot de passe de l'enfant nouvellement ajouter
             password = request.data.get('password', '')
-            if password is not None:
+            if password:
                 child.password = make_password(password)
                 child.save()
             # Lier directement le parent a l'enfant 

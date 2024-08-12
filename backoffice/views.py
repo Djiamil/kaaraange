@@ -154,7 +154,10 @@ def parent_liste_view(request):
     # Récupérez les objets Parent
     parent_list = Parent.objects.all()
     if search_query:
-        parent_list = parent_list.filter(prenom__icontains=search_query)
+        parent_list = parent_list.filter(
+                Q(prenom__icontains=search_query) | Q(nom__icontains=search_query)
+            )
+
     
     # Configurez la pagination
     paginator = Paginator(parent_list, page_size)

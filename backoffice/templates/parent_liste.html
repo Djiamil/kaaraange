@@ -167,12 +167,34 @@
         .center-button i {
             font-size: 1.2em; /* Adjust the size of the icon if needed */
         }
+        .search_fot_parent_btn {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+        }
+        .search_fot_parent_btn:hover {
+            background-color: #45a049;
+        }
     </style>
 </head>
 <body>
     <div class="add_user">
-        <span style="font-size: 20px;"><strong>Liste des parents</strong></span>
+        <div class="title">
+            <span style="font-size: 20px;"><strong>Liste des parents</strong></span>
+        </div>
+        <div class="filtre_parent" style="display: flex; justify-content: center; align-items: center;">
+            <label for="parent_search">Par Prenom ou Nom :</label>
+            <input type="text" id="search_fot_parent">
+            <button class="search_fot_parent_btn" onclick="handleFilterParent()" style="height: 50px; margin-left: 4px;">Filtrer</button>
+        </div>
+        
     </div>
+
     <div class="user_list">
         <table class="user_table">
             <thead>
@@ -235,7 +257,7 @@ async function fetchParents(reset = false) {
     document.getElementById('loading').style.display = 'block';
 
     try {
-        const response = await fetch(`/backoffice/parent_liste/?page=${currentPage}&size=${pageSize}${reset ? '&reset=true' : ''}`, {
+        const response = await fetch(`/backoffice/parent_liste/?page=${currentPage}&size=${pageSize}&search=${searchQuery}${reset ? '&reset=true' : ''}`, {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest' // Indiquez que c'est une requête AJAX
             }
@@ -263,6 +285,28 @@ async function fetchParents(reset = false) {
         document.getElementById('loading').style.display = 'none';
     }
 }
+
+        function handleSearchParentInput() {
+            const search_fot_parent = document.getElementById('search_fot_parent');
+            search_fot_parent.addEventListener('input', () => {
+                searchQuery = search_fot_parent.value;
+                resetAlertsParent();
+            });
+        }
+
+        function handleFilterParent() {
+            const search_fot_parent = document.getElementById('search_fot_parent');
+            searchQuery = search_fot_parent.value;
+
+            resetAlertsParent();
+        }
+        function resetAlertsParent() {
+            currentPage = 1;
+            isLastPage = false;
+            document.getElementById('userTableBody').innerHTML = ''; // Effacez le contenu de la table pour recharger les données
+            fetchParents(true); // Passez `true` pour réinitialiser la pagination côté serveur
+        }
+
 
 function addUserToTable(user) {
     const tableBody = document.getElementById('userTableBody');
@@ -398,6 +442,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('familyDetailsModal').style.display = 'none';
             }
         };
+        document.addEventListener('DOMContentLoaded', () => {
+            handleSearchParentInput();
+            resetAlertsparent();
+        });
     </script>
 </body>
 </html>
