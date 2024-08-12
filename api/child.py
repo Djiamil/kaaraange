@@ -513,12 +513,17 @@ class parentValidateChildDataAndLink(generics.RetrieveAPIView):
                     )
             if created:
                 # Ajouter le parent dans les contact d'urgence
-                emergencyContact = EmergencyContact.objects.create(
-                    parent = parent,
-                    phone_number = parent.phone_number,
-                    relationship = relation,
-                    name = parent.prenom + ' ' + parent.nom
-                )
+                parentExists = EmergencyContact.objects.filter(parent=parent).first()
+                if parentExists:
+                    contact_parent = parentExists
+                else:
+                    # Creer le parent dans dans les emergency contact c'est la premiere fois qu'il creer un enfant
+                    emergencyContact = EmergencyContact.objects.create(
+                        parent = parent,
+                        phone_number = parent.phone_number,
+                        relationship = relation,
+                        name = parent.prenom + ' ' + parent.nom
+                    )
             # Ajouter un alergie pour l'enfatnsi existe si allergy_type est dans le payload
             allergy_type = request.data.get('allergy_type', '')
             if allergy_type:
