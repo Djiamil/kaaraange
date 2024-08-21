@@ -398,7 +398,7 @@ class DailyTrajectoryView(generics.ListAPIView):
             enfant=child,
             datetime_localisation__gte=today,
             datetime_localisation__lt=tomorrow
-        ).order_by('datetime_localisation')
+        ).order_by('-datetime_localisation')
 
         if daily_locations.exists():
             serializer = self.get_serializer(daily_locations, many=True)
