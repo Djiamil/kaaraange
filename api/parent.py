@@ -384,7 +384,7 @@ class ParentNotificationListe(generics.ListAPIView):
 
     def get_queryset(self):
         slug = self.kwargs.get('slug')
-        return AlertNotification.objects.filter(parent__slug=slug)
+        return AlertNotification.objects.filter(parent__slug=slug).order_by('-notified_at')
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
