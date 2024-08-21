@@ -99,9 +99,9 @@ AUTH_USER_MODEL = 'api.User'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'kaaraange_db',
-        'USER': 'kaaraange_user',
-        'PASSWORD': 'kaaraange_2024',
+        'NAME': 'kaaraange',
+        'USER': 'djiamil',
+        'PASSWORD': 'djiamil',
         'HOST': 'localhost',
         'PORT': '5432',
     }
@@ -155,6 +155,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'mediafile')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
+    'api.backends.PhoneNumberBackend',
 ]
 
 SIMPLE_JWT = {
