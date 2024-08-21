@@ -99,9 +99,9 @@ AUTH_USER_MODEL = 'api.User'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'kaaraange',
-        'USER': 'djiamil',
-        'PASSWORD': 'djiamil',
+        'NAME': 'kaaraange_db',
+        'USER': 'kaaraange_user',
+        'PASSWORD': 'kaaraange_2024',
         'HOST': 'localhost',
         'PORT': '5432',
     }
