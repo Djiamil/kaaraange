@@ -38,7 +38,8 @@ ALLOWED_HOSTS = []
 # ALLOWED_HOSTS = ['vps529772.ovh.net', '127.0.0.1', '*', 'localhost:3000']
 # settings.py
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['0.0.0.0', 'localhost', '127.0.0.1', '[::1]', '109.234.166.83', 'api.prod.lecorpusmedical.org']
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
