@@ -303,7 +303,7 @@ class childDashbord(generics.RetrieveAPIView):
 
 # ajoue de localsations de l'enfant
 class AddLocalization(generics.RetrieveAPIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
     localisation = Location.objects.all()
     serializer_class = LocationSerializer
 
