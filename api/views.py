@@ -102,7 +102,7 @@ class LoginViews(TokenObtainPairView):
 class PhoneLoginView(APIView):
     def post(self, request, *args, **kwargs):
         phone_number = request.data.get('phone_number', '')
-        password = request.data.get('password', '') 
+        password = request.data.get('password', '')
 
         if not phone_number:
             return Response({
@@ -117,21 +117,12 @@ class PhoneLoginView(APIView):
                 'data': None,
                 'message': 'Password is required',
                 'success': False,
-                'code' : 400
+                'code': 400
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            user = User.objects.get(phone_number=phone_number)
-        except User.DoesNotExist:
-            return Response({
-                'data': None,
-                'message': 'Invalid phone number or password',
-                'success': False,
-                "code": 400
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        authenticated_user = authenticate(request, email=user.email, password=password)
-        if authenticated_user is not None:
+        # Authentifier l'utilisateur avec le backend personnalisé
+        user = authenticate(request, phone_number=phone_number, password=password)
+        if user is not None:
             access_token = AccessToken.for_user(user)
             serializer = UserSerializer(user)
             return Response({
@@ -141,14 +132,14 @@ class PhoneLoginView(APIView):
                 },
                 'message': 'Login successful',
                 'success': True,
-                'code' : 200,
+                'code': 200,
             }, status=status.HTTP_200_OK)
         else:
             return Response({
                 'data': None,
                 'message': 'Invalid phone number or password',
                 'success': False,
-                'code' : 400
+                'code': 400
             }, status=status.HTTP_400_BAD_REQUEST)
 
 # Pour tester les envoies sms des code otp

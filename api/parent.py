@@ -392,5 +392,6 @@ class ParentNotificationListe(generics.ListAPIView):
             return Response({'data': None, 'message': 'Aucune notification pour ce parent', 'success': False, "code" : 400}, status=status.HTTP_404_NOT_FOUND)
         serializer = self.get_serializer(queryset, many=True)
         return Response({'data': serializer.data, 'message': 'Notifications du parent.', "success": True, "code": 200}, status=status.HTTP_200_OK)
+        
             
 
