@@ -452,7 +452,8 @@ class parentResisterChild(generics.RetrieveAPIView):
     def post(self, request, *args, **kwargs):
         child = Child.objects.create(
             date_de_naissance = timezone.now().date(),
-            user_type = 'CHILD'
+            user_type = 'CHILD',
+            is_active = False
         )
         return Response({'data': ChildSerializer(child).data, 'message': "Veillez renseignez les information de l'enfant", 'success': True, 'code': 200}, status=status.HTTP_200_OK)
 
@@ -500,6 +501,8 @@ class parentValidateChildDataAndLink(generics.RetrieveAPIView):
             except Parent.DoesNotExist:
                 return Response({'data' : None, 'message' : "Aucun parent trouver pour la creation du compte de l'enfant", 'success' : False}, status=status.HTTP_400_BAD_REQUEST)
             serializer.save()
+            child.is_active = True
+            child.save()
             # mettre a jour le mot de passe de l'enfant nouvellement ajouter
             password = request.data.get('password', '')
             if password:
