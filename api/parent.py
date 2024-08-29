@@ -271,9 +271,9 @@ class ParentDashbord(generics.RetrieveAPIView):
             return Response({
                 "data": None,
                 "message": "Ce parent n'est lié à aucun enfant",
-                "success": False,
-                "code": 400
-            }, status=status.HTTP_400_BAD_REQUEST)
+                "success": True,
+                "code": 200
+            }, status=status.HTTP_200_OK)
 
         children = [member.child for member in famille]
 
@@ -389,9 +389,7 @@ class ParentNotificationListe(generics.ListAPIView):
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         if not queryset.exists():
-            return Response({'data': None, 'message': 'Aucune notification pour ce parent', 'success': False, "code" : 400}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'data': None, 'message': 'Aucune notification pour ce parent', 'success': True, "code" : 200}, status=status.HTTP_200_OK)
         serializer = self.get_serializer(queryset, many=True)
         return Response({'data': serializer.data, 'message': 'Notifications du parent.', "success": True, "code": 200}, status=status.HTTP_200_OK)
-        
-            
 

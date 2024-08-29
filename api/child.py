@@ -471,6 +471,17 @@ class parentValidateChildDataAndLink(generics.RetrieveAPIView):
         except Child.DoesNotExist:
             return Response({'data' : None, 'message' : "Aucun enfant trouver", 'success' :False , 'code' : 400},status=status.HTTP_400_BAD_REQUEST)
         serializer = ChildSerializer(child, data=request.data, partial=True)
+        try:
+            user_teste_existence_t = User.objects.filter(phone_number=request.data.get('phone_number')).first()
+        except User.DoesNotExist:
+            pass
+        if user_teste_existence_t:
+            return Response({
+                "data" : None,
+                "message" : "Un utilisateur avec ce numero de telephone existe deja",
+                "success" : False,
+                "code" : 400
+            },status=status.HTTP_400_BAD_REQUEST)
         if serializer.is_valid():
             try:
                 user_teste_existence = User.objects.filter(email=request.data.get('email')).first()
