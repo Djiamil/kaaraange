@@ -355,7 +355,7 @@ class SendAlertAllEmergenctContactForParentToChild(generics.RetrieveAPIView):
                             emergency_contacts.append(contact)
                     if parent.fcm_token :
                         token =parent.fcm_token
-                        text = f"Vous avez reçu une alerte qui indique que votre enfant {child.prenom} est hors de sa zone de sécurité."
+                        text = f"Vous avez reçu une alerte de votre enfant {child.prenom}."
                         try :
                             send_simple_notification(token,text)
                         except Exception as e:  # Capturer toutes les exceptions
