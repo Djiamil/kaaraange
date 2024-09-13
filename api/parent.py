@@ -15,6 +15,9 @@ from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
 from django.shortcuts import render, get_object_or_404
 from firebase_admin import credentials, messaging 
+import math
+from django.utils import timezone
+from datetime import timedelta
 
 
 
@@ -323,18 +326,6 @@ class ParentAddEmergencyContactForChildAlert(generics.RetrieveAPIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 # views pour alerter les membre de famille d'un enfant et envoyer la notification via firebase
-
-def send_simple_notification(token,text):
-    message = messaging.Message(
-        notification=messaging.Notification(
-            title='Bonjour,',
-            body=text,
-        ),
-        token=token,
-    )
-    response = messaging.send(message)
-    print('Successfully sent message:', response)
-
 class SendAlertAllEmergenctContactForParentToChild(generics.RetrieveAPIView):
         queryset = EmergencyAlert.objects.all()
         serializer_class = EmergencyAlertSerializer
@@ -393,3 +384,265 @@ class ParentNotificationListe(generics.ListAPIView):
         serializer = self.get_serializer(queryset, many=True)
         return Response({'data': serializer.data, 'message': 'Notifications du parent.', "success": True, "code": 200}, status=status.HTTP_200_OK)
 
+
+# Ajoue du point de reference pour la perimetre de securiité de l'enfant
+class addPointTrajetForChild(generics.CreateAPIView):
+    serializer_class = PointTrajetSerializer
+    queryset = PointTrajet.objects.all()
+    def post(self, request, *args, **kwargs):
+        try:
+            # Utilise get pour obtenir un seul objet
+            parent = Parent.objects.get(id=request.data.get('parent'))
+        except Parent.DoesNotExist:
+            return Response(
+                {
+                    'data': None,
+                    'message': 'Aucun Parent trouvé pour ce point de référence',
+                    'success': False,
+                    'code': 404
+                }, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = PointTrajetSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                {
+                    'data': serializer.data,
+                    'message': 'Point de référence ajouté avec succès',
+                    'success': True,
+                    'code': 200
+                }, 
+                status=status.HTTP_200_OK
+            )
+        else:
+            return Response(
+                {
+                    'data': None,
+                    'message': serializer.errors,
+                    'success': False,
+                    'code': 400
+                }, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+# vews pour ajouter un permetre de securté par le parent pour son enfant     
+class addPerimetreDeSecurityForChild(generics.CreateAPIView):
+    serializer_class = PerimetreSecuriteSerializer
+    queryset = PerimetreSecurite.objects.all()
+
+    def post(self, request, *args, **kwargs):
+        try:
+            # Utilise get pour obtenir un seul point_trajet
+            point_trajet = PointTrajet.objects.get(id=request.data.get('point_trajet'))
+        except PointTrajet.DoesNotExist:
+            return Response(
+                {
+                    'data': None,
+                    'message': 'Aucun point de référence trouvé pour ce périmètre de sécurité',
+                    'success': False,
+                    'code': 404
+                }, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        try:
+            enfant = Child.objects.get(id = request.data.get('enfant'))
+        except Child.DoesNotExist:
+            return Response(
+                {
+                    'data': None,
+                    'message': 'Aucun enfant trouvé pour ce périmètre de sécurité',
+                    'success': False,
+                    'code': 404
+                }, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        try:
+            point_trajet_exist = PerimetreSecurite.objects.filter(enfant=request.data.get('enfant')).first()
+        except PerimetreSecurite.DoesNotExist:
+            pass
+        if point_trajet_exist:
+            point_trajet_exist.delete()
+        serializer = PerimetreSecuriteSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                {
+                    'data': serializer.data,
+                    'message': 'Périmètre de sécurité ajouté avec succès',
+                    'success': True,
+                    'code': 200
+                }, 
+                status=status.HTTP_200_OK
+            )
+        else:
+            return Response(
+                {
+                    'data': None,
+                    'message': serializer.errors,
+                    'success': False,
+                    'code': 400
+                }, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+
+class tesspositionEnfantInZone(generics.CreateAPIView):
+    serializer_class = ChildSerializer
+    queryset = Child.objects.all()
+
+    def post(self, request, *args, **kwargs):
+        # Récupérer le pk de l'enfant depuis l'URL
+        slug = kwargs.get('slug')
+        
+        # Coordonnées de l'enfant (par exemple, Dakar)
+        lat_enfant = 14.6928
+        lon_enfant =  -17.4467
+        
+        # Appeler la fonction pour vérifier la position de l'enfant dans la zone
+        resultat = verifier_enfant_dans_zone(slug, lat_enfant, lon_enfant)
+        print("la response qui devrai etre retourner")
+        print(resultat)
+        # Retourner le résultat en réponse JSON
+        return resultat
+    
+# views pour modifier ou suprimé un perimetre de securité
+class PerimetreSecuriteView(generics.CreateAPIView):
+    serializer_class = PerimetreSecuriteSerializer
+    queryset = PerimetreSecurite.objects.all()
+
+    def get(self, request, slug, *args, **kwargs):
+        try:
+            perimetre_securite = PerimetreSecurite.objects.get(enfant__slug=slug)
+            serializer = PerimetreSecuriteSerializer(perimetre_securite)
+            return Response({
+                'data': serializer.data,
+                'message': 'Périmètre de sécurité trouvé avec succès',
+                'success': True,
+                'code': 200
+            }, status=status.HTTP_200_OK)
+        except PerimetreSecurite.DoesNotExist:
+            return Response({
+                'data': None,
+                'message': 'Aucun périmètre de sécurité trouvé pour cet enfant',
+                'success': False,
+                'code': 404
+            }, status=status.HTTP_404_NOT_FOUND)
+
+    def put(self, request, slug, *args, **kwargs):
+        try:
+            perimetre_securite = PerimetreSecurite.objects.get(slug=slug)
+            serializer = PerimetreSecuriteSerializer(perimetre_securite, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({
+                    'data': serializer.data,
+                    'message': 'Périmètre de sécurité modifié avec succès',
+                    'success': True,
+                    'code': 200
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({
+                    'data': None,
+                    'message': serializer.errors,
+                    'success': False,
+                    'code': 400
+                }, status=status.HTTP_400_BAD_REQUEST)
+        except PerimetreSecurite.DoesNotExist:
+            return Response({
+                'data': None,
+                'message': 'Aucun périmètre de sécurité trouvé pour cet enfant',
+                'success': False,
+                'code': 404
+            }, status=status.HTTP_404_NOT_FOUND)
+
+    def delete(self, request, slug, *args, **kwargs):
+        try:
+            perimetre_securite = PerimetreSecurite.objects.get(slug=slug)
+            perimetre_securite.delete()
+            return Response({
+                'message': 'Périmètre de sécurité supprimé avec succès',
+                'success': True,
+                'code': 204
+            }, status=status.HTTP_204_NO_CONTENT)
+        except PerimetreSecurite.DoesNotExist:
+            return Response({
+                'data': None,
+                'message': 'Aucun périmètre de sécurité trouvé pour cet enfant',
+                'success': False,
+                'code': 404
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+# views pour lister modifier ou supprimer le perimetre de securité
+class PointDeReferenceViews(generics.CreateAPIView):
+    serializer_class = PointTrajetSerializer
+    queryset = PointTrajet.objects.all()
+
+    def get(self, request, slug, *args, **kwargs):
+        try:
+            point_trajet = PointTrajet.objects.filter(parent__slug=slug)
+            serializer = PointTrajetSerializer(point_trajet, many=True)
+            return Response({
+                'data': serializer.data,
+                'message': 'Point trajet listé avec succès',
+                'success': True,
+                'code': 200
+            }, status=status.HTTP_200_OK)
+        except PointTrajet.DoesNotExist:
+            return Response({
+                'data': None,
+                'message': 'Aucun point trajet trouvé pour ce parent',
+                'success': False,
+                'code': 404
+            }, status=status.HTTP_404_NOT_FOUND)
+
+    def put(self, request, slug, *args, **kwargs):
+        try:
+            point_trajet = PointTrajet.objects.get(slug=slug)
+            serializer = PointTrajetSerializer(point_trajet, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({
+                    'data': serializer.data,
+                    'message': 'Point trajet modifié avec succès',
+                    'success': True,
+                    'code': 200
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({
+                    'data': None,
+                    'message': serializer.errors,
+                    'success': False,
+                    'code': 400
+                }, status=status.HTTP_400_BAD_REQUEST)
+        except PointTrajet.DoesNotExist:
+            return Response({
+                'data': None,
+                'message': 'Aucun point trajet trouvé pour ce slug',
+                'success': False,
+                'code': 404
+            }, status=status.HTTP_404_NOT_FOUND)
+
+    def delete(self, request, slug, *args, **kwargs):
+        try:
+            point_trajet = PointTrajet.objects.get(slug=slug)
+            point_trajet.delete()
+            return Response({
+                'message': 'Point trajet supprimé avec succès',
+                'success': True,
+                'code': 204
+            }, status=status.HTTP_204_NO_CONTENT)
+        except PointTrajet.DoesNotExist:
+            return Response({
+                'message': 'Aucun point trajet trouvé pour la suppression',
+                'success': False,
+                'code': 404
+            }, status=status.HTTP_404_NOT_FOUND)
+            
+
+            
+
+        
+
+        

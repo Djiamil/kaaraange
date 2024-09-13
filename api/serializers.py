@@ -116,3 +116,14 @@ class AlertNotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model =AlertNotification
         fields = '__all__'
+
+
+class PointTrajetSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PointTrajet
+        fields = '__all__'
+
+class PerimetreSecuriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PerimetreSecurite
+        fields = '__all__'

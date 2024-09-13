@@ -309,6 +309,9 @@ class AddLocalization(generics.RetrieveAPIView):
 
     def post(self, request, *args, **kwargs):
         serializer = LocationSerializer(data=request.data)
+        lat_enfant = float(request.data.get('latitude'))
+        lon_enfant = float(request.data.get('longitude'))
+
         
         enfant_slug = request.data.get('enfant')
         try:
@@ -324,6 +327,9 @@ class AddLocalization(generics.RetrieveAPIView):
         
         if serializer.is_valid():
             location = serializer.save()
+            resultat = verifier_enfant_dans_zone(enfant_slug, lat_enfant, lon_enfant)
+            print('resultat')
+            print(resultat)
             return Response({
                 "data": {
                     "location": LocationSerializer(location).data
