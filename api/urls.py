@@ -35,7 +35,12 @@ urlpatterns = [
     path('emergency_contact/<slug:slug>/', parent.ParentAddEmergencyContactForChildAlert.as_view(), name='emergency_contact'),
     path('send_alert_for_child/<slug:slug>/', parent.SendAlertAllEmergenctContactForParentToChild.as_view(), name='send_alert_for_child'),
     path('notification_liste/<slug:slug>/', parent.ParentNotificationListe.as_view(), name='notification_parent_liste'),
-    # fin des routes qui concerne le parent 
+    path('addPointTrajetForChild/', parent.addPointTrajetForChild.as_view(), name='addPointTrajetForChild'),
+    path('addPerimetreDeSecurityForChild/', parent.addPerimetreDeSecurityForChild.as_view(), name='addPerimetreDeSecurityForChild'),
+    path('perimetre_ecurite/<slug:slug>/', parent.PerimetreSecuriteView.as_view(), name='get_delete_or_update_perimetre_securité'),
+    path('point_trajet/<slug:slug>/', parent.PointDeReferenceViews.as_view(), name='get_delete_or_update_point_trajet'),
+
+    # fin des routes qui concerne le parent  
 
     # debut des routes pour l'enfant  
     path('childs/', child.RegisterChild.as_view(), name='ConfirmRegistration'),
@@ -53,6 +58,7 @@ urlpatterns = [
     # fin des routes qui conserne l'enfant  
 
     # les url sur le model qui link le parent au child
-    path('lislinkchildtoparent/', views.lislinkchildtoparent.as_view(), name='lislinkchildtoparent'),
+    path('lislinkchildtoparent/', views.lislinkchildtoparent.as_view(), name='lislinkchildtoparent'), 
     path('qr-code/<int:pk>/', views.GetQRCode.as_view(), name='get_qr_code'),
+    path('tesspositionEnfantInZone/<slug:slug>/', parent.tesspositionEnfantInZone.as_view(), name='tesspositionEnfantInZone'),
 ]
