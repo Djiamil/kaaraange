@@ -428,7 +428,7 @@ class addPointTrajetForChild(generics.CreateAPIView):
             )
 # vews pour ajouter un permetre de securté par le parent pour son enfant     
 class addPerimetreDeSecurityForChild(generics.CreateAPIView):
-    serializer_class = PerimetreSecuriteSerializer
+    serializer_class = PerimetreaddSecuriteSerializer
     queryset = PerimetreSecurite.objects.all()
 
     def post(self, request, *args, **kwargs):
@@ -464,7 +464,7 @@ class addPerimetreDeSecurityForChild(generics.CreateAPIView):
             pass
         if point_trajet_exist:
             point_trajet_exist.delete()
-        serializer = PerimetreSecuriteSerializer(data=request.data)
+        serializer = PerimetreaddSecuriteSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(
