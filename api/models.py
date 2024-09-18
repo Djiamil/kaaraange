@@ -324,4 +324,32 @@ class EmergencyNumber(models.Model):
     def __str__(self):
         return f"{self.get_type_display()} - {self.phone_number}"
 
+
+# Le model permettant de stocker les point de référence de l'enfant pour la périmetre de securité
+class PointTrajet(models.Model):
+    slug = models.SlugField(default=uuid.uuid1)
+    parent = models.ForeignKey(Parent, on_delete=models.CASCADE,blank=True, null=True)
+    enfant = models.ForeignKey(Child, on_delete=models.CASCADE,blank=True, null=True)
+    latitude = models.FloatField()
+    longitude = models.FloatField()
+    ordre = models.IntegerField(blank=True, null=True)
+    libelle = models.CharField(max_length=100, blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"Point {self.ordre} - {self.libelle} ({self.latitude}, {self.longitude}) pour {self.parent}"
+    
+# Models pour stocker l'espace de deplacement de l'enfant en rayon
+class PerimetreSecurite(models.Model):
+    slug = models.SlugField(default=uuid.uuid1)
+    point_trajet = models.ForeignKey(PointTrajet, on_delete=models.CASCADE)
+    rayon = models.FloatField()
+    enfant = models.ForeignKey(Child, on_delete=models.CASCADE,blank=True,null=True)
+
+    def __str__(self):
+        return f"Périmètre de sécurité de {self.rayon} mètres pour le point {self.point_trajet.libelle} ({self.point_trajet.latitude}, {self.point_trajet.longitude})"
 # super admin kaaraange@gmail.com gthub prof edacy Darcia0001@gmail.com
+
+
+
+
