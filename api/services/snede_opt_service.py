@@ -93,7 +93,7 @@ def calculer_distance(lat1, lon1, lat2, lon2):
     return distance
 
 # Fonction principale pour vérifier si l'enfant est dans la zone de sécurité
-def verifier_enfant_dans_zone(slug, lat_enfant, lon_enfant):
+def verifier_enfant_dans_zone(slug, lat_enfant, lon_enfant,adresse):
     try:
         # Récupérer le périmètre de sécurité associé à l'enfant
         perimetre_securite = PerimetreSecurite.objects.get(enfant__slug=slug)
@@ -136,6 +136,7 @@ def verifier_enfant_dans_zone(slug, lat_enfant, lon_enfant):
                             comment=text,
                             latitude=lat_enfant,
                             longitude=lon_enfant,
+                            adresse=adresse
                         )
                         
                         # Envoi des notifications aux membres de la famille et contacts d'urgence
@@ -176,6 +177,7 @@ def verifier_enfant_dans_zone(slug, lat_enfant, lon_enfant):
                             comment=text,
                             latitude=lat_enfant,
                             longitude=lon_enfant,
+                            adresse=adresse
                         )
                     # Envoi des notifications aux membres de la famille et contacts d'urgence
                     family_members = FamilyMember.objects.filter(child=child)
