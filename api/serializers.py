@@ -124,6 +124,12 @@ class PointTrajetSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class PerimetreSecuriteSerializer(serializers.ModelSerializer):
+    point_trajet = PointTrajetSerializer()
+    enfant = ChildSerializerDetail()
+    class Meta:
+        model = PerimetreSecurite
+        fields = '__all__'
+class PerimetreaddSecuriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = PerimetreSecurite
         fields = '__all__'
