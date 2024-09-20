@@ -311,6 +311,7 @@ class AddLocalization(generics.RetrieveAPIView):
         serializer = LocationSerializer(data=request.data)
         lat_enfant = float(request.data.get('latitude'))
         lon_enfant = float(request.data.get('longitude'))
+        adresse = request.data.get('adresse')
 
         
         enfant_slug = request.data.get('enfant')
@@ -327,7 +328,7 @@ class AddLocalization(generics.RetrieveAPIView):
         
         if serializer.is_valid():
             location = serializer.save()
-            resultat = verifier_enfant_dans_zone(enfant_slug, lat_enfant, lon_enfant)
+            resultat = verifier_enfant_dans_zone(enfant_slug, lat_enfant, lon_enfant,adresse)
             print('resultat')
             print(resultat)
             return Response({

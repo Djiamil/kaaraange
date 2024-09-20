@@ -129,6 +129,7 @@ class PerimetreSecuriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = PerimetreSecurite
         fields = '__all__'
+        
 class PerimetreaddSecuriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = PerimetreSecurite
