@@ -639,7 +639,75 @@ class PointDeReferenceViews(generics.CreateAPIView):
                 'success': False,
                 'code': 404
             }, status=status.HTTP_404_NOT_FOUND)
-            
+
+# Views pour que le parent puis accepter ou rejeter une demande de co-parent
+class ParentAcceptedOrDismissRequest(generics.ListCreateAPIView):
+    queryset = Demande.objects.all()
+    serializer_class = DemandeSerializer
+    def put(self, request, *args, **kwargs):
+        slug_notification = request.data.get('slug_notification','')
+        status_notification = request.data.get('status_notification','')
+        # Verifier  si la notification est lier a un demande et recupperer la demande
+        try:
+            notification = AlertNotification.objects.filter(slug=slug_notification).last()
+            demande =Demande.objects.get(notification=notification)
+        except Demande.DoesNotExist:
+            return Response({"data": None, "message": "Aucune demande trouver pour ce notification", "success":False}, status=status.HTTP_404_NOT_FOUND)
+        # tester si le premier parent accepte la demande de lier l'enfant et le co-parent on envoie des notifications au co-parent et creer le family member
+        if status_notification == "Accepté":
+
+            family_member = FamilyMember.objects.create(relation=demande.relationship,parent=demande.parent,child=demande.enfant)
+            notification.status = "Accepté"
+            notification.save()
+            demande.status = "Accepté"
+            demande.save()
+            back_notification = AlertNotification(type_notification="demande", parent=demande.parent,status="Accepté")
+            if demande.parent.fcm_token :
+                token =demande.parent.fcm_token
+                text = f"Votre demande pour devenire le Co-parent de l'enfant {demande.enfant.prenom} {demande.enfant.nom} à été aprouver par le parent {demande.parent.prenom} {demande.parent.nom}."
+                try :
+                    send_simple_notification(token,text)
+                except Exception as e:  # Capturer toutes les exceptions
+                    print(f"Erreur lors de l'envoi de la notification à {demande}: {e}")
+            if demande.parent.phone_number:
+                phone_number = demande.parent.phone_number
+                text = f"Votre demande pour devenir le co-parent de l'enfant {demande.enfant.prenom} {demande.enfant.nom} a été approuvée par le parent {demande.parent.prenom} {demande.parent.nom}."
+                send_sms(phone_number, text)
+            serializer = DemandeSerializer(demande)
+            return Response({"data": serializer.data, "message" : "Demande accepté avec succées", "status" : True , "code" : 200},status=status.HTTP_200_OK)
+        else:
+            back_notification = AlertNotification(type_notification="demande", parent=demande.parent,status="Refusé")
+            notification.status = "Refusé"
+            notification.save()
+            demande.status = "Refusé"
+            demande.save()
+            if demande.parent.fcm_token :
+                token =demande.parent.fcm_token
+                text = f"Votre demande pour devenir le co-parent de l'enfant {demande.enfant.prenom} {demande.enfant.nom} a été rejetée par le parent {demande.parent.prenom} {demande.parent.nom}."
+                try :
+                    send_simple_notification(token,text)
+                except Exception as e:  # Capturer toutes les exceptions
+                    print(f"Erreur lors de l'envoi de la notification à {demande}: {e}")
+            if demande.parent.phone_number:
+                phone_number = demande.parent.phone_number
+                text = f"Votre demande pour devenir le co-parent de l'enfant {demande.enfant.prenom} {demande.enfant.nom} a été rejetée par le parent {demande.parent.prenom} {demande.parent.nom}."
+                send_sms(phone_number, text)
+            serializer = DemandeSerializer(demande)
+            return Response({"data" : serializer.data, "message" : "Demande rejété avec succées", "status" : True, "code" : 200}, status=status.HTTP_200_OK)
+        
+# views pour la detaille de demande l'or de la validation de la demande par le parent
+class DetailDemandeForNotification(generics.RetrieveAPIView):
+    serializer_class = DetailDemandeSerializer()
+    queryset = Demande.objects.all()
+    def get(self, request, slug, *args, **kwargs):
+        slug = self.kwargs.get('slug')
+        try:
+            demande = Demande.objects.filter(notification__slug=slug).last()
+        except Demande.DoesNotExist:
+            return Response({"data" : None, "message" : "Aucune Demande trouver pour cette notification", "success" : False, "code" : 400}, status=status.HTTP_404_NOT_FOUND)
+        serializer = DetailDemandeSerializer(demande)
+        return Response({"data" : serializer.data , "message" : "détail demande" , "success" : True, "code" :200} , status=status.HTTP_200_OK)
+
 
             
 
