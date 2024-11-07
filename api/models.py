@@ -146,6 +146,7 @@ class FamilyMember(models.Model):
     relation = models.CharField(max_length=100, choices=RELATIONSHIP_CHOICES)
     parent = models.ForeignKey(Parent, on_delete=models.CASCADE, blank=True, null=True)
     child = models.ForeignKey(Child, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True, null=True,blank=True)  # Ajout de created_at
 
     def __str__(self):
         return f"{self.relation}: {self.parent} - {self.child}"
@@ -299,11 +300,18 @@ class AlertNotification(models.Model):
     ('DEMANDE', 'demande'),
     ('alerte', 'alerte'),
     ]
-    alert = models.ForeignKey(EmergencyAlert, on_delete=models.CASCADE, related_name='notifications')
+    STATUS_CHOICES = [
+        ('en_cours', 'En cours'),
+        ('refusé', 'Refusé'),
+        ('accepté', 'Accepté'),
+    ]
+    slug = models.SlugField(default=uuid.uuid1)
+    alert = models.ForeignKey(EmergencyAlert, on_delete=models.CASCADE,blank=True, null=True, related_name='notifications')
     contact = models.ForeignKey(EmergencyContact, on_delete=models.CASCADE, blank=True, null=True, related_name='notifications_contact')
     notified_at = models.DateTimeField(auto_now_add=True)
-    type_notification = models.CharField(max_length=10, choices=NOTIFICATION_TYPE, blank=True, null=True)
+    type_notification = models.CharField(max_length=10, choices=NOTIFICATION_TYPE, default='alerte')
     parent = models.ForeignKey(Parent, on_delete=models.CASCADE,null=True, blank=True, related_name='notification_parents')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='en_cours')  # Nouveau champ
 
     def __str__(self):
         contact_name = self.contact.name if self.contact else "Unknown contact"
@@ -315,6 +323,7 @@ class EmergencyNumber(models.Model):
         ('secours', 'Secours'),
         ('autre', 'Autre'),
     ]
+    
     slug = models.SlugField(default=uuid.uuid1)
     id = models.AutoField(primary_key=True)
     type = models.CharField(max_length=10, choices=EMERGENCY_TYPE_CHOICES)
@@ -348,8 +357,25 @@ class PerimetreSecurite(models.Model):
 
     def __str__(self):
         return f"Périmètre de sécurité de {self.rayon} mètres pour le point {self.point_trajet.libelle} ({self.point_trajet.latitude}, {self.point_trajet.longitude})"
+    
+class Demande(models.Model):
+    STATUS_CHOICES = [
+        ('en_cours', 'En cours'),
+        ('refusé', 'Refusé'),
+        ('accepté', 'Accepté'),
+    ]
+    slug = models.SlugField(default=uuid.uuid1)
+    enfant = models.ForeignKey(Child, on_delete=models.CASCADE, blank=True, null=True, related_name="demandes")
+    parent = models.ForeignKey(Parent, on_delete=models.CASCADE, blank=True, null=True, related_name="demandes_envoyees")
+    parent_recepteur = models.ForeignKey(Parent, on_delete=models.CASCADE, blank=True, null=True, related_name="demandes_recues")
+    relationship = models.CharField(max_length=100)
+    notification = models.ForeignKey(AlertNotification, on_delete=models.CASCADE, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='en_cours')  # Nouveau champ
+
+    def __str__(self):
+        return f"Demande de {self.relationship} pour {self.enfant} au parent {self.parent}"
+    
 # super admin kaaraange@gmail.com gthub prof edacy Darcia0001@gmail.com
-
-
-
 
