@@ -134,3 +134,19 @@ class PerimetreaddSecuriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = PerimetreSecurite
         fields = '__all__'
+
+class DemandeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Demande
+        fields = '__all__'
+
+class DetailDemandeSerializer(serializers.ModelSerializer):
+    enfant = ChildSerializer()
+    parent_emeteur = ParentSerializer(source='parent')
+    parent_recepteur = ParentSerializer() 
+    notification = AlertNotificationSerializer()
+    
+    class Meta:
+        model = Demande  # Correction ici
+        fields = '__all__'
+
