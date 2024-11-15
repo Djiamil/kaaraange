@@ -96,7 +96,7 @@ def calculer_distance(lat1, lon1, lat2, lon2):
 def verifier_enfant_dans_zone(slug, lat_enfant, lon_enfant,adresse):
     try:
         # Récupérer le périmètre de sécurité associé à l'enfant
-        perimetre_securite = PerimetreSecurite.objects.get(enfant__slug=slug)
+        perimetre_securite = PerimetreSecurite.objects.filter(enfant__slug=slug,is_active=True).first()
         
         # Récupérer le rayon du périmètre de sécurité
         rayon = perimetre_securite.rayon
@@ -128,7 +128,7 @@ def verifier_enfant_dans_zone(slug, lat_enfant, lon_enfant,adresse):
                 # Récupérer la dernière alerte pour l'enfant
                 child_alert = EmergencyAlert.objects.filter(child__slug=slug,alert_type="danger").last()
                 if child_alert:
-                # Si l'enfant a été hors de la zone pendant plus de 15 minutes
+                # Si l'enfant a été hors de la zone pendant plus de 5 minutes
                     if child_alert and timezone.now() - child_alert.datetime_localisation >= timedelta(minutes=5):
                         alert = EmergencyAlert.objects.create(
                             child=child,

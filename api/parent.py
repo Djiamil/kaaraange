@@ -74,7 +74,7 @@ class parentRegister(generics.CreateAPIView):
             pendingUser = serializer.save(avatar=default_avatar_url)
             otp_code = generate_otp(pendingUser)
             to_phone_number = request.data['telephone']
-            text = "Veillez recevoir votre code de confirmation d'inscription " + otp_code
+            text = "Veuillez recevoir votre code de confirmation d'inscription " + otp_code
             send_sms(to_phone_number, text)
             response_serializer = PendingUserGetSerializer(pendingUser)
             return Response({
@@ -462,8 +462,9 @@ class addPerimetreDeSecurityForChild(generics.CreateAPIView):
             point_trajet_exist = PerimetreSecurite.objects.filter(enfant=request.data.get('enfant')).first()
         except PerimetreSecurite.DoesNotExist:
             pass
-        if point_trajet_exist:
-            point_trajet_exist.delete()
+        # j'ai commenter cette partie par ce que maintenant l'enfant peux avoir plusieur perimetre de securité or que au debut c'etait pas le cas l'enfant ne pouvais avoir qu'un seule perimetre de secuirite'
+        # if point_trajet_exist:
+        #     point_trajet_exist.delete()
         serializer = PerimetreaddSecuriteSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -639,6 +640,35 @@ class PointDeReferenceViews(generics.CreateAPIView):
                 'success': False,
                 'code': 404
             }, status=status.HTTP_404_NOT_FOUND)
+        
+# Une views pour permetre au parent de pouvoir activer ou desactiver un point perimetre de securité dont un doit etre activer
+class AnabledOrDisabledPerimetreDesecurite(generics.CreateAPIView):
+    serializer_class = PerimetreaddSecuriteSerializer
+    queryset = PerimetreSecurite.objects.all()
+
+    def put(self, request, slug, *args, **kwargs):
+        try:
+            perimetre_securite = PerimetreSecurite.objects.get(slug=slug)
+        except PerimetreSecurite.DoesNotExist:
+            return Response({"data": None,"message": "Aucun périmètre de sécurité trouvé","success": False,"code": 404}, status=status.HTTP_404_NOT_FOUND)
+
+        if perimetre_securite.is_active:
+
+            perimetre_securite.is_active = False
+            perimetre_securite.save()
+            return Response({ "data": None,"message": "Périmètre de sécurité désactivé avec succès","success": True,"code": 200}, status=status.HTTP_200_OK)
+
+        # Vérifier si un autre périmètre actif existe pour cet enfant
+        child = perimetre_securite.enfant
+        if PerimetreSecurite.objects.filter(enfant=child, is_active=True).exists():
+            return Response({"data": None,"message": "Veuillez désactiver tous les points actifs avant d'en activer un autre","success": False,"code": 400}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Activer le périmètre si aucun autre n'est actif
+        perimetre_securite.is_active = True
+        perimetre_securite.save()
+        return Response({"data": None,"message": "Périmètre de sécurité activé avec succès", "success": True,"code": 200}, status=status.HTTP_200_OK)
+
+        
 
 # Views pour que le parent puis accepter ou rejeter une demande de co-parent
 class ParentAcceptedOrDismissRequest(generics.ListCreateAPIView):
@@ -709,7 +739,21 @@ class DetailDemandeForNotification(generics.RetrieveAPIView):
         return Response({"data" : serializer.data , "message" : "détail demande" , "success" : True, "code" :200} , status=status.HTTP_200_OK)
 
 
-            
+# Cette views vas juste nous permetre de retourner les enfant d'un parent
+class GetAllChildForthisParent(generics.ListAPIView):
+    serializer_class = FamilyMemberSerializer()
+    queryset = FamilyMember.objects.all()
+    def get(self, request, slug, *args,**kwargs):
+        try:
+            family_members = FamilyMember.objects.filter(parent__slug=slug)
+        except FamilyMember.DoesNotExist:
+            return Response({"data" : None, "message" : "Ce parent n'est lié à aucun enfant", "access" : True, "code" : 200}, status=status.HTTP_200_OK)
+        if family_members:
+            children = [family_member.child for family_member in family_members]
+            serializer = ChildSerializer(children, many=True)
+            return Response({"data" : serializer.data , "message" : "Liste des enfants", "access" : True, "code" : 200}, status=status.HTTP_200_OK)
+        else:
+            return Response({"data" : None, "message" : "Ce parent n'est lié à aucun enfant", "access" : True, "code" : 200}, status=status.HTTP_200_OK)
 
         
 

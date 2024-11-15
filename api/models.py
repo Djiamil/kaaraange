@@ -354,6 +354,8 @@ class PerimetreSecurite(models.Model):
     point_trajet = models.ForeignKey(PointTrajet, on_delete=models.CASCADE)
     rayon = models.FloatField()
     enfant = models.ForeignKey(Child, on_delete=models.CASCADE,blank=True,null=True)
+    is_active = models.BooleanField(default=False)
+
 
     def __str__(self):
         return f"Périmètre de sécurité de {self.rayon} mètres pour le point {self.point_trajet.libelle} ({self.point_trajet.latitude}, {self.point_trajet.longitude})"
