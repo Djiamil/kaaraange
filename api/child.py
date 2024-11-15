@@ -20,6 +20,8 @@ from django.shortcuts import render, get_object_or_404
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.permissions import IsAuthenticated
 from datetime import datetime, timedelta
+from django.utils.dateparse import parse_datetime
+
 
 
 
@@ -383,36 +385,48 @@ class LastPosition(generics.RetrieveAPIView):
 class DailyTrajectoryView(generics.ListAPIView):
     serializer_class = LocationSerializer
 
-    def get(self, request, type="day", *args, **kwargs):
+    def get(self, request, type="7days", *args, **kwargs):
         slug = self.kwargs.get('slug')
         
         # Vérifier si l'enfant existe   
         child = get_object_or_404(Child, slug=slug)
+        today = timezone.now()
 
-        today = timezone.now().date()
-        
-        if type == "day":
-            start_date = today
-            end_date = today + timedelta(days=1)
-        elif type == "week":
-            start_date = today - timedelta(days=today.weekday())  # Début de la semaine (lundi)
-            end_date = start_date + timedelta(days=7)
-        elif type == "month":
-            start_date = today.replace(day=1)  # Début du mois
-            next_month = start_date.month % 12 + 1
-            end_date = start_date.replace(month=next_month, day=1)
+        if type == "7days":
+            start_date = today - timedelta(days=7)
+        elif type == "30days":
+            start_date = today - timedelta(days=30)
+        elif type == "90days":
+            start_date = today - timedelta(days=90)
+        else:
+            return Response({
+                "data": None,
+                "message": "Type de période non valide. Utilisez '7days', '30days', ou '90days'.",
+                "success": False,
+                "code": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
 
-        # Filtrer les emplacements de l'enfant en fonction des dates de début et de fin
+        # Filtrer les emplacements de l'enfant pour la période spécifiée
         locations = Location.objects.filter(
             enfant=child,
             datetime_localisation__gte=start_date,
-            datetime_localisation__lt=end_date
+            datetime_localisation__lt=today
         ).order_by('-datetime_localisation')
 
         if locations.exists():
             serializer = self.get_serializer(locations, many=True)
+            formatted_data = []
+            for loc in serializer.data:
+                # Convertir datetime_localisation en objet datetime si c'est une chaîne
+                datetime_str = loc['datetime_localisation']
+                datetime_obj = parse_datetime(datetime_str) if isinstance(datetime_str, str) else datetime_str
+                if datetime_obj:
+                    formatted_data.append({
+                        "data" : loc,
+                        "detail_message": f"Vous avez consulté l'historique des déplacements de {child.nom}. {child.nom} s'est rendu(e) à “{loc['adresse']}” le {timezone.localtime(datetime_obj).strftime('%d %B à %Hh%M')}."
+                    })
             return Response({
-                "data": serializer.data,
+                "data": formatted_data,
                 "message": "Trajectoire de l'enfant récupérée avec succès",
                 "success": True,
                 "code": 200
@@ -676,6 +690,23 @@ class ChildParentRelationship(generics.CreateAPIView):
             "success": True,
             "code": 200
         }, status=status.HTTP_200_OK)
+    
+# Cette views vas juste nous permetre de retourner les parent d'un enfant
+class GetAllParentForthiChild(generics.ListAPIView):
+    serializer_class = FamilyMemberSerializer() 
+    queryset = FamilyMember.objects.all()
+    def get(self, request, slug, *args,**kwargs):
+        try:
+            family_members = FamilyMember.objects.filter(child__slug=slug)  
+        except FamilyMember.DoesNotExist:
+            return Response({"data" : None, "message" : "Cet enfant n'est lié à aucun parent", "access" : True, "code" : 200}, status=status.HTTP_200_OK)
+        if family_members:
+            parent = [family_member.parent for family_member in family_members]
+            serializer = ParentSerializer(parent, many=True)
+            return Response({"data" : serializer.data , "message" : "Liste des parents", "access" : True, "code" : 200}, status=status.HTTP_200_OK)
+        else:
+            return Response({"data" : None, "message" : "Cet enfant n'est lié à aucun parent", "access" : True, "code" : 200}, status=status.HTTP_200_OK)
+
         
 
 

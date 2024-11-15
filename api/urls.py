@@ -40,6 +40,8 @@ urlpatterns = [
     path('point_trajet/<slug:slug>/', parent.PointDeReferenceViews.as_view(), name='get_delete_or_update_point_trajet'),
     path('traitement_demande/', parent.ParentAcceptedOrDismissRequest.as_view(), name='traitement_demande'),
     path('detail_emande/<slug:slug>/', parent.DetailDemandeForNotification.as_view(), name='detail_emande'),
+    path('perimetreSecure_state/<slug:slug>/', parent.AnabledOrDisabledPerimetreDesecurite.as_view(), name='anabled_or_disabled_perimetre_desecurite'),
+    path('child_liste/<slug:slug>/', parent.GetAllChildForthisParent.as_view(), name='all_child_liste_for_parent'),
     # fin des routes qui concerne le parent  
 
     # debut des routes pour l'enfant  
@@ -55,6 +57,7 @@ urlpatterns = [
     path('parent_register_child/', child.parentResisterChild.as_view(), name='parent_register_child'),
     path('parent_validate_child_subscriber/<slug:slug>/', child.parentValidateChildDataAndLink.as_view(), name='parent_validate_child_subscriber'),
     path('child_parent_relationship/<slug:slug>/', child.ChildParentRelationship.as_view(), name='child_parent_relationship'),
+    path('parent_list/<slug:slug>/', child.GetAllParentForthiChild.as_view(), name='parent_list'),
     # fin des routes qui conserne l'enfant  
 
     # les url sur le model qui link le parent au child
