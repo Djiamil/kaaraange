@@ -513,12 +513,13 @@ class parentValidateChildDataAndLink(generics.RetrieveAPIView):
                 return Response({'data' : None, 'message' : "Aucun parent trouver pour la creation du compte de l'enfant", 'success' : False}, status=status.HTTP_400_BAD_REQUEST)
             first_family_member = FamilyMember.objects.filter(child=child).order_by('created_at').first()
             # creation de la notification qui est lier u demande pour la recuperation du demande
-            notification = AlertNotification.objects.create(type_notification = "demande",parent =parent)
+            comment = f"Un nouveau parent souhaite ajouter {child.prenom} {child.nom}."
+            notification = AlertNotification.objects.create(type_notification = "demande",parent =parent, comment = comment)
             # Creation de la demande qui sera envoyer et grder pour la validation ou le rejet du parent 
             demande = Demande.objects.create(enfant = child,parent = parent,parent_recepteur = first_family_member.parent,relationship =relation,notification =notification)
             if first_family_member.parent.fcm_token :
                 token =first_family_member.parent.fcm_token
-                text = f"Le parent {parent.prenom} {parent.nom} vous a envoyer une demande pour suivre votre enfant {child.prenom} {child.nom}."
+                text = f"Bonjour {parent.prenom} {parent.nom}  a exprimé le souhait de devenir co-parent pour votre enfant {child.prenom} {child.nom} Votre décision est essentielle pour renforcer le cercle de protection de votre enfant."
                 try :
                     send_simple_notification(token,text)
                 except Exception as e:  # Capturer toutes les exceptions
@@ -526,7 +527,7 @@ class parentValidateChildDataAndLink(generics.RetrieveAPIView):
             # Envoi du SMS si le numéro de téléphone existe
             if first_family_member.parent.phone_number:
                 phone_number = first_family_member.parent.phone_number
-                text = f"Le parent {parent.prenom} {parent.nom} vous a envoyer une demande pour suivre votre enfant {child.prenom} {child.nom}."
+                text = f"Bonjour {parent.prenom} {parent.nom}  a exprimé le souhait de devenir co-parent pour votre enfant {child.prenom} {child.nom} Votre décision est essentielle pour renforcer le cercle de protection de votre enfant."
                 send_sms(phone_number, text)
             return Response({
                 "data" : ParentSerializer(first_family_member.parent).data,
@@ -706,9 +707,3 @@ class GetAllParentForthiChild(generics.ListAPIView):
             return Response({"data" : serializer.data , "message" : "Liste des parents", "access" : True, "code" : 200}, status=status.HTTP_200_OK)
         else:
             return Response({"data" : None, "message" : "Cet enfant n'est lié à aucun parent", "access" : True, "code" : 200}, status=status.HTTP_200_OK)
-
-        
-
-
-
-

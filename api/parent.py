@@ -74,7 +74,7 @@ class parentRegister(generics.CreateAPIView):
             pendingUser = serializer.save(avatar=default_avatar_url)
             otp_code = generate_otp(pendingUser)
             to_phone_number = request.data['telephone']
-            text = "Veuillez recevoir votre code de confirmation d'inscription " + otp_code
+            text = "Bienvenue dans notre communauté ! Voici votre code de confirmation pour activer votre compte et commencer à veiller sur vos enfants : " + otp_code + "."
             send_sms(to_phone_number, text)
             response_serializer = PendingUserGetSerializer(pendingUser)
             return Response({
@@ -313,7 +313,7 @@ class ParentAddEmergencyContactForChildAlert(generics.RetrieveAPIView):
         serializer = EmergencyContactSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            text = "Bonjour " + request.data.get('name') + ", le parent " + parent.prenom + " " + parent.nom + " vous a ajouté en tant que numéro de contact d'urgence pour ses enfants."
+            text = "Bonjour " + request.data.get('name') + ", le parent " + parent.prenom + " " + parent.nom + " vous fait confiance et vous a désigné(e) comme contact d'urgence pour ses enfants. Merci pour votre soutien précieux."
             to_phone_number = request.data['phone_number']
             send_sms(to_phone_number, text)
             return Response ({
@@ -362,7 +362,7 @@ class SendAlertAllEmergenctContactForParentToChild(generics.RetrieveAPIView):
                             print(f"Erreur lors de l'envoi de la notification à {parent}: {e}")
                     AlertNotification.objects.create(alert=alert,type_notification='alerte', parent=parent)
                 for contact in emergency_contacts:
-                    text = f"Vous avez reçu une alerte de votre enfant {child.prenom}."
+                    text = f"Urgence ! Votre enfant {child.prenom} a besoin de votre attention immédiate. Prenez le temps de vérifier et de rassurer votre enfant."
                     send_sms(contact.phone_number, text)
                 return Response({'data': None, 'message': 'Alert created and emergency contacts notified.',"success": True,"code" : 200}, status=status.HTTP_201_CREATED)
             except Child.DoesNotExist:
@@ -515,8 +515,8 @@ class PerimetreSecuriteView(generics.CreateAPIView):
 
     def get(self, request, slug, *args, **kwargs):
         try:
-            perimetre_securite = PerimetreSecurite.objects.get(enfant__slug=slug)
-            serializer = PerimetreSecuriteSerializer(perimetre_securite)
+            perimetre_securite = PerimetreSecurite.objects.filter(enfant__slug=slug)
+            serializer = PerimetreSecuriteSerializer(perimetre_securite,many=True)
             return Response({
                 'data': serializer.data,
                 'message': 'Périmètre de sécurité trouvé avec succès',
@@ -694,14 +694,14 @@ class ParentAcceptedOrDismissRequest(generics.ListCreateAPIView):
             back_notification = AlertNotification(type_notification="demande", parent=demande.parent,status="Accepté")
             if demande.parent.fcm_token :
                 token =demande.parent.fcm_token
-                text = f"Votre demande pour devenire le Co-parent de l'enfant {demande.enfant.prenom} {demande.enfant.nom} à été aprouver par le parent {demande.parent.prenom} {demande.parent.nom}."
+                text = f"Bonne nouvelle ! Votre demande pour devenir co-parent de l'enfant  {demande.enfant.prenom} {demande.enfant.nom} a été acceptée par {demande.parent.prenom} {demande.parent.nom}.Ensemble, vous construisez un environnement plus sûr pour cet enfant."
                 try :
                     send_simple_notification(token,text)
                 except Exception as e:  # Capturer toutes les exceptions
                     print(f"Erreur lors de l'envoi de la notification à {demande}: {e}")
             if demande.parent.phone_number:
                 phone_number = demande.parent.phone_number
-                text = f"Votre demande pour devenir le co-parent de l'enfant {demande.enfant.prenom} {demande.enfant.nom} a été approuvée par le parent {demande.parent.prenom} {demande.parent.nom}."
+                text = f"Bonne nouvelle ! Votre demande pour devenir co-parent de l'enfant  {demande.enfant.prenom} {demande.enfant.nom} a été acceptée par {demande.parent.prenom} {demande.parent.nom}.Ensemble, vous construisez un environnement plus sûr pour cet enfant."
                 send_sms(phone_number, text)
             serializer = DemandeSerializer(demande)
             return Response({"data": serializer.data, "message" : "Demande accepté avec succées", "status" : True , "code" : 200},status=status.HTTP_200_OK)
@@ -713,14 +713,14 @@ class ParentAcceptedOrDismissRequest(generics.ListCreateAPIView):
             demande.save()
             if demande.parent.fcm_token :
                 token =demande.parent.fcm_token
-                text = f"Votre demande pour devenir le co-parent de l'enfant {demande.enfant.prenom} {demande.enfant.nom} a été rejetée par le parent {demande.parent.prenom} {demande.parent.nom}."
+                text = f"Votre demande pour devenir co-parent de l'enfant    {demande.enfant.prenom} {demande.enfant.nom} a été refusée par {demande.parent.prenom} {demande.parent.nom}.Nous vous encourageons à communiquer avec le parent principal pour en discuter."
                 try :
                     send_simple_notification(token,text)
                 except Exception as e:  # Capturer toutes les exceptions
                     print(f"Erreur lors de l'envoi de la notification à {demande}: {e}")
             if demande.parent.phone_number:
                 phone_number = demande.parent.phone_number
-                text = f"Votre demande pour devenir le co-parent de l'enfant {demande.enfant.prenom} {demande.enfant.nom} a été rejetée par le parent {demande.parent.prenom} {demande.parent.nom}."
+                text = f"Votre demande pour devenir co-parent de l'enfant    {demande.enfant.prenom} {demande.enfant.nom} a été refusée par {demande.parent.prenom} {demande.parent.nom}.Nous vous encourageons à communiquer avec le parent principal pour en discuter."
                 send_sms(phone_number, text)
             serializer = DemandeSerializer(demande)
             return Response({"data" : serializer.data, "message" : "Demande rejété avec succées", "status" : True, "code" : 200}, status=status.HTTP_200_OK)
