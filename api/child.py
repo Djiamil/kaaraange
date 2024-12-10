@@ -330,7 +330,9 @@ class AddLocalization(generics.RetrieveAPIView):
         
         if serializer.is_valid():
             location = serializer.save()
-            resultat = verifier_enfant_dans_zone(enfant_slug, lat_enfant, lon_enfant,adresse)
+            perimetre_securite = PerimetreSecurite.objects.filter(enfant__slug=enfant_slug,is_active=True).first()
+            if perimetre_securite :
+                resultat = verifier_enfant_dans_zone(enfant_slug, lat_enfant, lon_enfant,adresse)
             return Response({
                 "data": {
                     "location": LocationSerializer(location).data
