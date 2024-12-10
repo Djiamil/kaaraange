@@ -123,7 +123,7 @@ def verifier_enfant_dans_zone(slug, lat_enfant, lon_enfant,adresse):
             # Envoi des alertes et notifications si l'enfant est hors de la zone
             try:
                 child = Child.objects.filter(slug=slug).first()
-                text = f"Vous avez reçu une alerte qui indique que votre enfant {child.prenom} est hors de sa zone de sécurité."
+                text = f"Alerte importante : Votre enfant {child.prenom} est sorti de sa zone de sécurité. Nous vous invitons à agir rapidement pour vous assurer qu’il est en sécurité. Si cette situation persiste, une autre alerte sera envoyée dans 5 minutes."
 
                 # Récupérer la dernière alerte pour l'enfant
                 child_alert = EmergencyAlert.objects.filter(child__slug=slug,alert_type="danger").last()

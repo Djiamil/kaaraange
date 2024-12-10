@@ -312,6 +312,8 @@ class AlertNotification(models.Model):
     type_notification = models.CharField(max_length=10, choices=NOTIFICATION_TYPE, default='alerte')
     parent = models.ForeignKey(Parent, on_delete=models.CASCADE,null=True, blank=True, related_name='notification_parents')
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='en_cours')  # Nouveau champ
+    comment = models.TextField(max_length=10,blank=True,null=True)
+
 
     def __str__(self):
         contact_name = self.contact.name if self.contact else "Unknown contact"
