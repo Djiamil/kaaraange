@@ -212,7 +212,7 @@ class SendOtpUserChangePassword(generics.GenericAPIView):
                 }, status=status.HTTP_404_NOT_FOUND)
 
         otp_code = generate_otp()
-        text = f"Votre code de vérification pour changer le mot de passe est : {otp_code}"
+        text = f"Pour garantir la sécurité de votre compte, veuillez utiliser ce code pour changer votre mot de passe : {otp_code}. Ensemble, nous veillons sur ce qui compte le plus."
         send_sms(to_phone_number, text)
 
         parent.otp_token = otp_code
@@ -339,7 +339,7 @@ class sendBackOtp(generics.GenericAPIView):
 
         otp_code = regenerate_otp()
 
-        text = f"Votre code de vérification pour finaliser votre inscription : {otp_code}"
+        text = f"Bienvenue dans notre communauté ! Voici votre code de confirmation pour activer votre compte et commencer à veiller sur vos enfants :  {otp_code}."
         send_sms(to_phone_number, text)
 
         try:
