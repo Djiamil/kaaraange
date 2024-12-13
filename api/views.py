@@ -371,7 +371,7 @@ class sendNotificationOnly(generics.GenericAPIView):
         text = request.data.get('text')
         title = request.data.get('title', "Bonjour") 
         if not text:
-            return Response({"data": "Le texte ne doit pas être vide"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"data": None, "message": "Le texte ne doit pas être vide", "succes" : False , "code" : 400}, status=status.HTTP_400_BAD_REQUEST)
         try :
             user = User.objects.get(slug=slug)
         except User.DoesNotExist:
