@@ -33,7 +33,6 @@ class parentRegister(generics.CreateAPIView):
       
         serializer = UserSerializer(parents, many=True)
         return Response(serializer.data)
-    
     def post(self, request, *args, **kwargs):
         serializer = PendingUserGetSerializer(data=request.data)
         user_teste_existence = {}
@@ -47,6 +46,8 @@ class parentRegister(generics.CreateAPIView):
                     "code" : 404
                 },status=status.HTTP_400_BAD_REQUEST)
             try:
+                if request.data.get('email') == None:
+                    return Response({"data" : None, "message" : "Véillez Fournir un email", "success" : False, "code" : 404},status=status.HTTP_400_BAD_REQUEST)
                 user_teste_existence = User.objects.get(email=request.data.get('email'))
             except User.DoesNotExist:
                 pass
