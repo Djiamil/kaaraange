@@ -22,6 +22,7 @@ urlpatterns = [
     path('confirm__otp_password_user/', views.ConfirmOtpUserForPassword.as_view(), name='confirm_otp_password_user'),
     path('change_password/', views.ChangePasswordUser.as_view(), name='ChangePasswordUser'),
     path('sendB_back_otp/', views.sendBackOtp.as_view(), name='sendBackOtp'),
+    path('send_notification/<slug:slug>/', views.sendNotificationOnly.as_view(), name='send_notification_only'),
     # fin intervale des url qui conserne le user 
 
     # debut des routes qui concerne le parent 
@@ -51,7 +52,9 @@ urlpatterns = [
     path('child/<slug:slug>/', child.childDashbord.as_view(), name='child_dashboard'),
     path('child_location/', child.AddLocalization.as_view(), name='child_location'),
     path('position/<slug:slug>/', child.LastPosition.as_view(), name='child_last_position'),
-    path('daily_trajectory/<slug:slug>/<str:type>/', child.DailyTrajectoryView.as_view(), name='daily-trajectory'), 
+    # path('daily_trajectory/<slug:slug>/<str:type>/', child.DailyTrajectoryView.as_view(), name='daily-trajectory'),
+    path('daily_trajectory/<slug:slug>/', child.DailyTrajectoryView.as_view(), name='daily-trajectory-default'),
+    path('daily_trajectory/<slug:slug>/<str:type>/', child.DailyTrajectoryView.as_view(), name='daily-trajectory'),
     path('child_update/<slug:slug>/', child.UpdateChild.as_view(), name='update_child'), 
     path('add_allergy/', child.ChildAlergyApiViews.as_view(), name='child_add_allergy'),
     path('parent_register_child/', child.parentResisterChild.as_view(), name='parent_register_child'),

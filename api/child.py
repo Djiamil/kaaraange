@@ -387,7 +387,7 @@ class LastPosition(generics.RetrieveAPIView):
 class DailyTrajectoryView(generics.ListAPIView):
     serializer_class = LocationSerializer
 
-    def get(self, request, type="7days", *args, **kwargs):
+    def get(self, request, type="24hours", *args, **kwargs):
         slug = self.kwargs.get('slug')
         
         # Vérifier si l'enfant existe   
@@ -400,6 +400,8 @@ class DailyTrajectoryView(generics.ListAPIView):
             start_date = today - timedelta(days=30)
         elif type == "90days":
             start_date = today - timedelta(days=90)
+        elif type == "24hours":
+            start_date = today - timedelta(days=1)
         else:
             return Response({
                 "data": None,

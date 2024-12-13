@@ -362,3 +362,38 @@ class sendBackOtp(generics.GenericAPIView):
         }, status=status.HTTP_200_OK)
 
 
+# Cette views vas juste nous permetre d'envoyer des notification au utilisateur via firedabase
+class sendNotificationOnly(generics.GenericAPIView):
+    serializer_class = AlertNotificationSerializer
+    queryset = AlertNotification.objects.all()
+    def post(self, request, *args, **kwargs):
+        slug = kwargs.get('slug')
+        text = request.data.get('text')
+        title = request.data.get('title', "Bonjour") 
+        if not text:
+            return Response({"data": "Le texte ne doit pas être vide"}, status=status.HTTP_400_BAD_REQUEST)
+        try :
+            user = User.objects.get(slug=slug)
+        except User.DoesNotExist:
+            return Response({"data" : None , "message" : "Aucun utilisateur trouver pour se mail" , "success" : False, "code" : 404}, status.HTTP_404_NOT_FOUND)
+        token = user.fcm_token
+        to_phone_number = user.phone_number
+        if token :
+            message = messaging.Message(
+            notification=messaging.Notification(
+                title=title,
+                body=text,
+            ),
+            token=token,
+            )
+            response = messaging.send(message)
+            print('Successfully sent message:', response)
+            send_sms(to_phone_number, text)
+            return Response({"data" : None, "message" : "Notification envoyer avec succés", "success" : True, "code" : 200}, status = status.HTTP_200_OK)
+        elif to_phone_number:
+            send_sms(to_phone_number, text)
+            return Response({"data" : None, "message" : "Notification envoyer avec succés", "success" : True, "code" : 200}, status = status.HTTP_200_OK)
+        else:
+            return Response({"data": None, "message": "Aucun moyen de contact trouvé pour cet utilisateur", "success": False, "code": 400},
+                            status=status.HTTP_400_BAD_REQUEST)
+
