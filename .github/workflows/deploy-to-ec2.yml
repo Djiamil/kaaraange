@@ -15,20 +15,20 @@ jobs:
 
       - name: Deploy to EC2
         env:
-          EC2_HOST: 3.84.229.155             # Remplace par l'adresse IP publique de ton instance EC2
-          EC2_USER: ubuntu                   # Utilisateur SSH par défaut pour EC2
-          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          EC2_HOST: 3.84.229.155             # IP publique de votre instance EC2.
+          EC2_USER: ubuntu                   # Utilisateur SSH par défaut pour EC2.
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }} # Le secret contenant votre clé privée SSH.
+        #   configuiration des action a executer
         run: |
           mkdir -p ~/.ssh
           echo "$EC2_SSH_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
           ssh $EC2_USER@$EC2_HOST << 'EOF'
-            cd ~/kaaraange                  # Navigue vers le répertoire de ton projet
-            git pull origin main            # Mets à jour le dépôt Git
-            source venv/bin/activate        # Active l'environnement virtuel
-            pip install -r requirements.txt # Mets à jour les dépendances
-            python manage.py migrate        # Applique les migrations
-            python manage.py collectstatic --noinput # Collecte les fichiers statiques
-            sudo systemctl restart gunicorn # Redémarre Gunicorn ou le serveur web
+            cd ~/kaaraange                  # Naviguez vers le répertoire de votre projet.
+            git pull origin main            # Mettez à jour le dépôt Git.
+            source venv/bin/activate        # Activez l'environnement virtuel Django.
+            pip install -r requirements.txt # Mettez à jour les dépendances.
+            python manage.py migrate        # Appliquez les migrations.
+            # Vous gérez Gunicorn et collectstatic manuellement, donc ces étapes sont supprimées.
           EOF
