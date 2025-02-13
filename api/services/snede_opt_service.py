@@ -96,15 +96,15 @@ def calculer_distance(lat1, lon1, lat2, lon2):
 def verifier_enfant_dans_zone(slug, lat_enfant, lon_enfant,adresse):
     try:
         # Récupérer le périmètre de sécurité associé à l'enfant
-        perimetre_securite = PerimetreSecurite.objects.filter(enfant__slug=slug,is_active=True).first()
+        child_with_perimetre = ChildWithPerimetreSecurite.objects.filter(child__slug=slug,is_active=True).first()
+        perimetre_securite = child_with_perimetre.perimetre_securite
         
         # Récupérer le rayon du périmètre de sécurité
         rayon = perimetre_securite.rayon
 
         # Récupérer les coordonnées du point de référence
-        point_trajet = perimetre_securite.point_trajet
-        point_trajet_latitude = point_trajet.latitude
-        point_trajet_longitude = point_trajet.longitude
+        point_trajet_latitude = perimetre_securite.latitude
+        point_trajet_longitude = perimetre_securite.longitude
 
         # Calculer la distance entre la position actuelle de l'enfant et le point de référence
         distance_enfant_point = calculer_distance(

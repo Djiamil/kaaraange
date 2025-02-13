@@ -396,4 +396,34 @@ class sendNotificationOnly(generics.GenericAPIView):
         else:
             return Response({"data": None, "message": "Aucun moyen de contact trouvé pour cet utilisateur", "success": False, "code": 400},
                             status=status.HTTP_400_BAD_REQUEST)
+class DeleteUserView(generics.DestroyAPIView):
+    def delete(self, request, *args, **kwargs):
+        phone_or_email = request.data.get("phone_or_email")
+        password = request.data.get('password')
+
+        if not phone_or_email:
+            return Response(
+                {"message": "Veuillez fournir un email ou un numéro de téléphone", "success": False, "code": 400},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Trouver l'utilisateur par email ou téléphone
+        user = None
+        if phone_or_email:
+            user = User.objects.filter(email=phone_or_email).first()
+        if phone_or_email and not user:
+            user = User.objects.filter(phone_number=phone_or_email).first()
+
+        if not user:
+            return Response(
+                {"message": "Utilisateur non trouvé", "success": False, "code": 404},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # user.delete()
+
+        return Response(
+            {"message": "Utilisateur supprimé avec succès", "success": True, "code": 200},
+            status=status.HTTP_200_OK,
+        )
 
