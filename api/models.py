@@ -113,6 +113,8 @@ class Child(User):
     vous_appelle_til = models.CharField(max_length=100, blank=True, null=True)
     numeros_urgences = models.TextField()
     ecole = models.CharField(max_length=100, blank=True, null=True)
+    battery_level = models.IntegerField(default=100, help_text="Niveau de batterie en pourcentage (0-100)")
+
 
 # le model ParentChildLink nous permetrat maintenant juste de relier un enfant a un qrcode
 class ParentChildLink(models.Model):
