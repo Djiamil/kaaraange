@@ -419,9 +419,12 @@ class DeleteUserView(generics.DestroyAPIView):
                 {"message": "Utilisateur non trouvé", "success": False, "code": 404},
                 status=status.HTTP_404_NOT_FOUND,
             )
-
-        # user.delete()
-
+        if user.user_type == "PARENT":
+            family_members = FamilyMember.objects.filter(parent=user)
+            for family_member in family_members :
+                family_member.child.delete()
+            family_members.delete()
+        user.delete()
         return Response(
             {"message": "Utilisateur supprimé avec succès", "success": True, "code": 200},
             status=status.HTTP_200_OK,
