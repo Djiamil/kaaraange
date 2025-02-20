@@ -840,7 +840,23 @@ class ConnectChildSafetyPerimeter(generics.CreateAPIView):
                 {"data": None, "message": "Le compte enfant n'existe pas", "success": False, "code": 400},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        
+        child_with_psec = ChildWithPerimetreSecurite.objects.filter(
+            child=child, perimetre_securite=perimetre, is_active=True
+        ).first()
 
+        if child_with_psec:
+            child_with_psec.is_active = False
+            child_with_psec.save()
+            return Response(
+                {
+                    "data": ChildWithPerimetreSecuriteSerializer(child_with_psec).data,
+                    "message": "Périmètre de sécurité désactivé avec succès",
+                    "success": True,
+                    "code": 200,
+                },
+                status=status.HTTP_200_OK,
+            )
         # Désactiver tous les anciens périmètres de l'enfant
         ChildWithPerimetreSecurite.objects.filter(child=child).update(is_active=False)
 
