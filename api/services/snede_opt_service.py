@@ -58,16 +58,33 @@ def send_sms(to_phone_number, text):
         return Response({"error": f"Erreur lors de la requête vers l'API Africa Mobile : {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 # Fonction pour envoyer les notifications via firebase
-def send_simple_notification(token,text):
+def send_simple_notification(token, text, sound="default"):
     message = messaging.Message(
         notification=messaging.Notification(
             title='Bonjour,',
             body=text,
         ),
+        data={
+            "type": "alert"
+        },
+        android=messaging.AndroidConfig(
+            priority='high',
+            notification=messaging.AndroidNotification(
+                sound=sound
+            ),
+        ),
+        apns=messaging.APNSConfig(
+            payload=messaging.APNSPayload(
+                aps=messaging.Aps(
+                    sound=sound
+                )
+            )
+        ),
         token=token,
     )
+
     response = messaging.send(message)
-    print('Successfully sent message:', response)
+    print('✅ Successfully sent message:', response)
 
     
 # Fonction pour calculer la distance entre deux points géographiques (formule de Haversine)
@@ -151,7 +168,7 @@ def verifier_enfant_dans_zone(slug, lat_enfant, lon_enfant,adresse):
                                 if parent.fcm_token:
                                     token = parent.fcm_token
                                     try:
-                                        send_simple_notification(token, text)
+                                        send_simple_notification(token,text,"warning_sound")
                                     except Exception as e:
                                         print(f"Erreur lors de l'envoi de la notification à {parent}: {e}")
                                 AlertNotification.objects.create(alert=alert, type_notification='alerte', parent=parent)
@@ -191,7 +208,7 @@ def verifier_enfant_dans_zone(slug, lat_enfant, lon_enfant,adresse):
                             if parent.fcm_token:
                                 token = parent.fcm_token
                                 try:
-                                    send_simple_notification(token, text)
+                                    send_simple_notification(token, text, "warning_sound")
                                 except Exception as e:
                                     print(f"Erreur lors de l'envoi de la notification à {parent}: {e}")
                             AlertNotification.objects.create(alert=alert, type_notification='alerte', parent=parent)

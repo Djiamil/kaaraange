@@ -358,7 +358,7 @@ class SendAlertAllEmergenctContactForParentToChild(generics.RetrieveAPIView):
                         token =parent.fcm_token
                         text = f"Vous avez reçu une alerte de votre enfant {child.prenom}."
                         try :
-                            send_simple_notification(token,text)
+                            send_simple_notification(token,text,"warning_sound")
                         except Exception as e:  # Capturer toutes les exceptions
                             print(f"Erreur lors de l'envoi de la notification à {parent}: {e}")
                     AlertNotification.objects.create(alert=alert,type_notification='alerte', parent=parent)

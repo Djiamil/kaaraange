@@ -383,16 +383,34 @@ class sendNotificationOnly(generics.GenericAPIView):
             notification=messaging.Notification(
                 title=title,
                 body=text,
+                sound="default"
             ),
+             data={
+            "type": "chat"
+            },
             token=token,
+            # Configuration spécifique pour iOS
+            apns=messaging.APNSConfig(
+                payload=messaging.APNSPayload(
+                    aps=messaging.Aps(
+                        sound="default"
+                    )
+                )
+            ),
+            # Configuration spécifique pour Android
+            android=messaging.AndroidConfig(
+                notification=messaging.AndroidNotification(
+                    sound="default"
+                    )
+                )
             )
             response = messaging.send(message)
             print('Successfully sent message:', response)
-            send_sms(to_phone_number, text)
+            # send_sms(to_phone_number, text)
             return Response({"data" : None, "message" : "Notification envoyer avec succés", "success" : True, "code" : 200}, status = status.HTTP_200_OK)
-        elif to_phone_number:
-            send_sms(to_phone_number, text)
-            return Response({"data" : None, "message" : "Notification envoyer avec succés", "success" : True, "code" : 200}, status = status.HTTP_200_OK)
+        # elif to_phone_number:
+        #     send_sms(to_phone_number, text)
+        #     return Response({"data" : None, "message" : "Notification envoyer avec succés", "success" : True, "code" : 200}, status = status.HTTP_200_OK)
         else:
             return Response({"data": None, "message": "Aucun moyen de contact trouvé pour cet utilisateur", "success": False, "code": 400},
                             status=status.HTTP_400_BAD_REQUEST)
