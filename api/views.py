@@ -383,7 +383,6 @@ class sendNotificationOnly(generics.GenericAPIView):
             notification=messaging.Notification(
                 title=title,
                 body=text,
-                sound="default"
             ),
              data={
             "type": "chat"
