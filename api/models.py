@@ -113,6 +113,8 @@ class Child(User):
     vous_appelle_til = models.CharField(max_length=100, blank=True, null=True)
     numeros_urgences = models.TextField()
     ecole = models.CharField(max_length=100, blank=True, null=True)
+    battery_level = models.IntegerField(default=100, help_text="Niveau de batterie en pourcentage (0-100)")
+
 
 # le model ParentChildLink nous permetrat maintenant juste de relier un enfant a un qrcode
 class ParentChildLink(models.Model):
@@ -336,7 +338,7 @@ class EmergencyNumber(models.Model):
         return f"{self.get_type_display()} - {self.phone_number}"
 
 
-# Le model permettant de stocker les point de référence de l'enfant pour la périmetre de securité
+# Le model permettant de stocker les point de référence de l'enfant pour la périmetre de securité(Qui n'est plus utiliser par fusion avec le model perimetre de securité)
 class PointTrajet(models.Model):
     slug = models.SlugField(default=uuid.uuid1)
     parent = models.ForeignKey(Parent, on_delete=models.CASCADE,blank=True, null=True)
@@ -353,14 +355,26 @@ class PointTrajet(models.Model):
 # Models pour stocker l'espace de deplacement de l'enfant en rayon
 class PerimetreSecurite(models.Model):
     slug = models.SlugField(default=uuid.uuid1)
-    point_trajet = models.ForeignKey(PointTrajet, on_delete=models.CASCADE)
+    parent = models.ForeignKey(Parent, on_delete=models.CASCADE,blank=True, null=True)
     rayon = models.FloatField()
-    enfant = models.ForeignKey(Child, on_delete=models.CASCADE,blank=True,null=True)
     is_active = models.BooleanField(default=False)
-
+    libelle = models.CharField(max_length=100, blank=True, null=True)
+    latitude = models.FloatField(blank=True, null=True)
+    longitude = models.FloatField(blank=True, null=True)
 
     def __str__(self):
-        return f"Périmètre de sécurité de {self.rayon} mètres pour le point {self.point_trajet.libelle} ({self.point_trajet.latitude}, {self.point_trajet.longitude})"
+        return f"Périmètre de sécurité '{self.libelle}' ({self.latitude}, {self.longitude}) - {self.rayon}m"
+
+
+# Nouvelle process de lier un perimetre de securite a un enfant pour pouvoir l'activer ou la desactiver
+class ChildWithPerimetreSecurite(models.Model):
+    slug = models.SlugField(default=uuid.uuid4, unique=True)
+    child = models.ForeignKey(Child, on_delete=models.CASCADE)
+    perimetre_securite = models.ForeignKey(PerimetreSecurite, on_delete=models.CASCADE)
+    is_active = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.child.nom} - {self.perimetre_securite.libelle} ({'Actif' if self.is_active else 'Inactif'})"
     
 class Demande(models.Model):
     STATUS_CHOICES = [

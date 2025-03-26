@@ -22,6 +22,8 @@ urlpatterns = [
     path('confirm__otp_password_user/', views.ConfirmOtpUserForPassword.as_view(), name='confirm_otp_password_user'),
     path('change_password/', views.ChangePasswordUser.as_view(), name='ChangePasswordUser'),
     path('sendB_back_otp/', views.sendBackOtp.as_view(), name='sendBackOtp'),
+    path('send_notification/<slug:slug>/', views.sendNotificationOnly.as_view(), name='send_notification_only'),
+    path('delete_user/', views.DeleteUserView.as_view(), name='user_delete'),
     # fin intervale des url qui conserne le user 
 
     # debut des routes qui concerne le parent 
@@ -42,6 +44,11 @@ urlpatterns = [
     path('detail_emande/<slug:slug>/', parent.DetailDemandeForNotification.as_view(), name='detail_emande'),
     path('perimetreSecure_state/<slug:slug>/', parent.AnabledOrDisabledPerimetreDesecurite.as_view(), name='anabled_or_disabled_perimetre_desecurite'),
     path('child_liste/<slug:slug>/', parent.GetAllChildForthisParent.as_view(), name='all_child_liste_for_parent'),
+    path('perimetre_create/', parent.ParentAddPerimetreOfSecurity.as_view(), name='perimetre_create'),
+    path('child_safety_perimetre/', parent.ConnectChildSafetyPerimeter.as_view(), name='child_safety_perimetre'),
+    path('parent/<slug:slug>/perimetres/', parent.ParentPerimetreListView.as_view(), name='parent-perimetres'),
+    path('child/<slug:slug>/perimetres/', parent.ChildPerimetreListView.as_view(), name='child-perimetres'),
+
     # fin des routes qui concerne le parent  
 
     # debut des routes pour l'enfant  
@@ -51,7 +58,9 @@ urlpatterns = [
     path('child/<slug:slug>/', child.childDashbord.as_view(), name='child_dashboard'),
     path('child_location/', child.AddLocalization.as_view(), name='child_location'),
     path('position/<slug:slug>/', child.LastPosition.as_view(), name='child_last_position'),
-    path('daily_trajectory/<slug:slug>/<str:type>/', child.DailyTrajectoryView.as_view(), name='daily-trajectory'), 
+    # path('daily_trajectory/<slug:slug>/<str:type>/', child.DailyTrajectoryView.as_view(), name='daily-trajectory'),
+    path('daily_trajectory/<slug:slug>/', child.DailyTrajectoryView.as_view(), name='daily-trajectory-default'),
+    path('daily_trajectory/<slug:slug>/<str:type>/', child.DailyTrajectoryView.as_view(), name='daily-trajectory'),
     path('child_update/<slug:slug>/', child.UpdateChild.as_view(), name='update_child'), 
     path('add_allergy/', child.ChildAlergyApiViews.as_view(), name='child_add_allergy'),
     path('parent_register_child/', child.parentResisterChild.as_view(), name='parent_register_child'),

@@ -757,5 +757,159 @@ class GetAllChildForthisParent(generics.ListAPIView):
             return Response({"data" : None, "message" : "Ce parent n'est lié à aucun enfant", "access" : True, "code" : 200}, status=status.HTTP_200_OK)
 
         
+# Le nouveau process pour creer un perimetre de securité par le parent et la liesons d'un perimetre de securité a un enfant
+class ParentAddPerimetreOfSecurity(generics.CreateAPIView):
+    serializer_class = PerimetreaddSecuriteSerializer
+    queryset = PerimetreSecurite.objects.all()
 
+    def post(self, request, *args, **kwargs):
+        slug_parent = request.data.get('slug_parent')
+        latitude = request.data.get('latitude')
+        longitude = request.data.get('longitude')
+        # Vérification de l'existence du parent
+        try:
+            parent = Parent.objects.get(slug=slug_parent)
+        except Parent.DoesNotExist:
+            return Response(
+                {
+                    "data": None,
+                    "message": "Le parent n'existe pas",
+                    "success": False,
+                    "code": 400,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        # Vérification des coordonnées
+        if not latitude or not longitude:
+            return Response(
+                {
+                    "data": None,
+                    "message": "La latitude et la longitude sont obligatoires",
+                    "success": False,
+                    "code": 400,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        # Ajout du parent aux données avant la sérialisation
+        request.data['parent'] = parent.id
+        # Sérialisation et validation des données
+        serializer = PerimetreaddSecuriteSerializer(data=request.data)
+        if serializer.is_valid():
+            perimetre = serializer.save()
+            return Response(
+                {
+                    "data": PerimetreaddSecuriteSerializer(perimetre).data,
+                    "message": "Périmètre de sécurité créé avec succès",
+                    "success": True,
+                    "code": 201,
+                },
+                status=status.HTTP_201_CREATED,
+            )
+
+        return Response(
+            {
+                "data": serializer.errors,
+                "message": "Une erreur s'est produite",
+                "success": False,
+                "code": 400,
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+# Relier un perimetre de securité a un enfant pour la verification
+class ConnectChildSafetyPerimeter(generics.CreateAPIView):
+    serializer_class = ChildWithPerimetreSecuriteSerializer
+    queryset = ChildWithPerimetreSecurite.objects.all()
+
+    def post(self, request, *args, **kwargs):
+        perimetre_slug = request.data.get("perimetre_slug")
+        child_slug = request.data.get("child_slug")
+
+        try:
+            perimetre = PerimetreSecurite.objects.get(slug=perimetre_slug)
+        except PerimetreSecurite.DoesNotExist:
+            return Response(
+                {"data": None, "message": "Le périmètre de sécurité n'existe pas", "success": False, "code": 400},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            child = Child.objects.get(slug=child_slug)
+        except Child.DoesNotExist:
+            return Response(
+                {"data": None, "message": "Le compte enfant n'existe pas", "success": False, "code": 400},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        
+        child_with_psec = ChildWithPerimetreSecurite.objects.filter(
+            child=child, perimetre_securite=perimetre, is_active=True
+        ).first()
+
+        if child_with_psec:
+            child_with_psec.is_active = False
+            child_with_psec.save()
+            return Response(
+                {
+                    "data": ChildWithPerimetreSecuriteSerializer(child_with_psec).data,
+                    "message": "Périmètre de sécurité désactivé avec succès",
+                    "success": True,
+                    "code": 200,
+                },
+                status=status.HTTP_200_OK,
+            )
+        # Désactiver tous les anciens périmètres de l'enfant
+        ChildWithPerimetreSecurite.objects.filter(child=child).update(is_active=False)
+
+        # Activer ou créer l'association entre l'enfant et le périmètre
+        child_with_perimetre, created = ChildWithPerimetreSecurite.objects.update_or_create(
+            child=child, perimetre_securite=perimetre, defaults={"is_active": True}
+        )
+
+        message = "Périmètre de sécurité activé avec succès" if not created else "Périmètre de sécurité affecté avec succès"
+        
+        return Response(
+            {
+                "data": ChildWithPerimetreSecuriteSerializer(child_with_perimetre).data,
+                "message": message,
+                "success": True,
+                "code": 200 if not created else 201,
+            },
+            status=status.HTTP_200_OK if not created else status.HTTP_201_CREATED,
+        )
+    
+# Lister les perimetre de securité d'un parent vec les enfant 
+class ParentPerimetreListView(generics.ListAPIView):
+    def get(self, request, slug, *args, **kwargs):
+        parent = get_object_or_404(Parent, slug=slug)  
+        perimetres = PerimetreSecurite.objects.filter(parent=parent)
+        
+        serializer = ListePerimetreSecuriteSerializer(perimetres, many=True)
+
+        return Response(
+            {"data": serializer.data, "message": "Périmètres de sécurité du parent récupérés", "success": True, "code": 200},
+            status=status.HTTP_200_OK
+        )
+    
+
+# liste des perimetre de securité pour l'enfzntclass 
+class ChildPerimetreListView(generics.ListAPIView):
+    def get(self, request, slug, *args, **kwargs):
+        child = get_object_or_404(Child, slug=slug)  
+        perimetres_associes = ChildWithPerimetreSecurite.objects.filter(child=child)
+
+        # Sérialiser l'enfant une seule fois
+        child_serializer = ChildSerializer(child)
+
+        # Sérialiser les périmètres associés
+        perimetres_serializer = PerimetreAssocieSerializer(perimetres_associes, many=True)
+
+        return Response(
+            {
+                "child": child_serializer.data,  # L'enfant une seule fois
+                "perimetres": perimetres_serializer.data,  # Liste des périmètres
+                "message": "Périmètres de l'enfant récupérés",
+                "success": True,
+                "code" : 200
+            },
+            status=status.HTTP_200_OK)
         

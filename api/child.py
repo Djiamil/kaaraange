@@ -330,7 +330,7 @@ class AddLocalization(generics.RetrieveAPIView):
         
         if serializer.is_valid():
             location = serializer.save()
-            perimetre_securite = PerimetreSecurite.objects.filter(enfant__slug=enfant_slug,is_active=True).first()
+            perimetre_securite = ChildWithPerimetreSecurite.objects.filter(child__slug=enfant_slug,is_active=True).first()
             if perimetre_securite :
                 resultat = verifier_enfant_dans_zone(enfant_slug, lat_enfant, lon_enfant,adresse)
             return Response({
@@ -387,7 +387,7 @@ class LastPosition(generics.RetrieveAPIView):
 class DailyTrajectoryView(generics.ListAPIView):
     serializer_class = LocationSerializer
 
-    def get(self, request, type="7days", *args, **kwargs):
+    def get(self, request, type="24hours", *args, **kwargs):
         slug = self.kwargs.get('slug')
         
         # Vérifier si l'enfant existe   
@@ -400,6 +400,8 @@ class DailyTrajectoryView(generics.ListAPIView):
             start_date = today - timedelta(days=30)
         elif type == "90days":
             start_date = today - timedelta(days=90)
+        elif type == "24hours":
+            start_date = today - timedelta(days=1)
         else:
             return Response({
                 "data": None,

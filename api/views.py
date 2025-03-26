@@ -362,3 +362,71 @@ class sendBackOtp(generics.GenericAPIView):
         }, status=status.HTTP_200_OK)
 
 
+# Cette views vas juste nous permetre d'envoyer des notification au utilisateur via firedabase
+class sendNotificationOnly(generics.GenericAPIView):
+    serializer_class = AlertNotificationSerializer
+    queryset = AlertNotification.objects.all()
+    def post(self, request, *args, **kwargs):
+        slug = kwargs.get('slug')
+        text = request.data.get('text')
+        title = request.data.get('title', "Bonjour") 
+        if not text:
+            return Response({"data": None, "message": "Le texte ne doit pas être vide", "succes" : False , "code" : 400}, status=status.HTTP_400_BAD_REQUEST)
+        try :
+            user = User.objects.get(slug=slug)
+        except User.DoesNotExist:
+            return Response({"data" : None , "message" : "Aucun utilisateur trouver pour se mail" , "success" : False, "code" : 404}, status.HTTP_404_NOT_FOUND)
+        token = user.fcm_token
+        to_phone_number = user.phone_number
+        if token :
+            message = messaging.Message(
+            notification=messaging.Notification(
+                title=title,
+                body=text,
+            ),
+            token=token,
+            )
+            response = messaging.send(message)
+            print('Successfully sent message:', response)
+            send_sms(to_phone_number, text)
+            return Response({"data" : None, "message" : "Notification envoyer avec succés", "success" : True, "code" : 200}, status = status.HTTP_200_OK)
+        elif to_phone_number:
+            send_sms(to_phone_number, text)
+            return Response({"data" : None, "message" : "Notification envoyer avec succés", "success" : True, "code" : 200}, status = status.HTTP_200_OK)
+        else:
+            return Response({"data": None, "message": "Aucun moyen de contact trouvé pour cet utilisateur", "success": False, "code": 400},
+                            status=status.HTTP_400_BAD_REQUEST)
+class DeleteUserView(generics.DestroyAPIView):
+    def delete(self, request, *args, **kwargs):
+        phone_or_email = request.data.get("phone_or_email")
+        password = request.data.get('password')
+
+        if not phone_or_email:
+            return Response(
+                {"message": "Veuillez fournir un email ou un numéro de téléphone", "success": False, "code": 400},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Trouver l'utilisateur par email ou téléphone
+        user = None
+        if phone_or_email:
+            user = User.objects.filter(email=phone_or_email).first()
+        if phone_or_email and not user:
+            user = User.objects.filter(phone_number=phone_or_email).first()
+
+        if not user:
+            return Response(
+                {"message": "Utilisateur non trouvé", "success": False, "code": 404},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        if user.user_type == "PARENT":
+            family_members = FamilyMember.objects.filter(parent=user)
+            for family_member in family_members :
+                family_member.child.delete()
+            family_members.delete()
+        user.delete()
+        return Response(
+            {"message": "Utilisateur supprimé avec succès", "success": True, "code": 200},
+            status=status.HTTP_200_OK,
+        )
+

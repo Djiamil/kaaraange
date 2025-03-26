@@ -1,0 +1,34 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy to EC2
+        env:
+          EC2_HOST: 3.84.229.155             # IP publique de votre instance EC2.
+          EC2_USER: ubuntu                   # Utilisateur SSH par défaut pour EC2.
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }} # Le secret contenant votre clé privée SSH.
+        #   configuiration des action a executer
+        run: |
+          mkdir -p ~/.ssh
+          echo "$EC2_SSH_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
+          ssh $EC2_USER@$EC2_HOST << 'EOF'
+            cd ~/kaaraange                  # Naviguez vers le répertoire de votre projet.
+            git pull origin main            # Mettez à jour le dépôt Git.
+            source venv/bin/activate        # Activez l'environnement virtuel Django.
+            pip install -r requirements.txt # Mettez à jour les dépendances.
+            python manage.py migrate        # Appliquez les migrations.
+            # Vous gérez Gunicorn et collectstatic manuellement, donc ces étapes sont supprimées.
+          EOF

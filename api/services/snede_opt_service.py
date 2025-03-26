@@ -96,15 +96,15 @@ def calculer_distance(lat1, lon1, lat2, lon2):
 def verifier_enfant_dans_zone(slug, lat_enfant, lon_enfant,adresse):
     try:
         # Récupérer le périmètre de sécurité associé à l'enfant
-        perimetre_securite = PerimetreSecurite.objects.filter(enfant__slug=slug,is_active=True).first()
+        child_with_perimetre = ChildWithPerimetreSecurite.objects.filter(child__slug=slug,is_active=True).first()
+        perimetre_securite = child_with_perimetre.perimetre_securite
         
         # Récupérer le rayon du périmètre de sécurité
         rayon = perimetre_securite.rayon
 
         # Récupérer les coordonnées du point de référence
-        point_trajet = perimetre_securite.point_trajet
-        point_trajet_latitude = point_trajet.latitude
-        point_trajet_longitude = point_trajet.longitude
+        point_trajet_latitude = perimetre_securite.latitude
+        point_trajet_longitude = perimetre_securite.longitude
 
         # Calculer la distance entre la position actuelle de l'enfant et le point de référence
         distance_enfant_point = calculer_distance(
@@ -123,7 +123,7 @@ def verifier_enfant_dans_zone(slug, lat_enfant, lon_enfant,adresse):
             # Envoi des alertes et notifications si l'enfant est hors de la zone
             try:
                 child = Child.objects.filter(slug=slug).first()
-                text = f"Alerte importante : Votre enfant {child.prenom} est sorti de sa zone de sécurité. Nous vous invitons à agir rapidement pour vous assurer qu’il est en sécurité. Si cette situation persiste, une autre alerte sera envoyée dans 5 minutes."
+                text = f"Alerte importante : Votre enfant {child.prenom} est sorti de sa zone de sécurité. Nous vous invitons à agir rapidement pour vous assurer qu'il est en sécurité. Si cette situation persiste, une autre alerte sera envoyée dans 5 minutes."
 
                 # Récupérer la dernière alerte pour l'enfant
                 child_alert = EmergencyAlert.objects.filter(child__slug=slug,alert_type="danger").last()

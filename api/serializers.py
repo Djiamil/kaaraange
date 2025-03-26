@@ -76,7 +76,7 @@ class ChildSerializerDetail(serializers.ModelSerializer):
         fields = ['id', 'slug', 'email', 'phone_number', 'password', 'prenom', 'nom', 'is_active', 'is_archive',
                   'user_type', 'accepted_terms', 'registration_method', 'otp_token',
                   'gender', 'date_de_naissance', 'type_appareil', 'numeros_urgences',
-                  'ecole','avatar', 'allergies', 'medical_issues', 'last_location']
+                  'ecole','battery_level', 'avatar', 'allergies', 'medical_issues', 'last_location']
 
     def get_last_location(self, obj):
         # Récupère la dernière localisation pour l'enfant
@@ -150,3 +150,41 @@ class DetailDemandeSerializer(serializers.ModelSerializer):
         model = Demande  # Correction ici
         fields = '__all__'
 
+class ChildWithPerimetreSecuriteSerializer(serializers.ModelSerializer):
+    child = ChildSerializer()  # Charger les détails de l'enfant
+    class Meta:
+        model = ChildWithPerimetreSecurite
+        fields = '__all__'
+
+
+class ListeChildWithPerimetreSecuriteSerializer(serializers.ModelSerializer):
+    child_slug = serializers.CharField(source="child.slug")
+    child_nom = serializers.CharField(source="child.nom")
+
+    class Meta:
+        model = ChildWithPerimetreSecurite
+        fields = ["child_slug", "child_nom", "is_active"]
+
+class ListePerimetreSecuriteSerializer(serializers.ModelSerializer):
+    enfants_associes = serializers.SerializerMethodField()
+    
+
+    class Meta:
+        model = PerimetreSecurite
+        fields = ["slug", "libelle", "rayon", "latitude", "longitude", "enfants_associes"]
+
+    def get_enfants_associes(self, obj):
+        enfants = obj.childwithperimetresecurite_set.all()
+        return ChildWithPerimetreSecuriteSerializer(enfants, many=True).data if enfants else []
+
+class PerimetreAssocieSerializer(serializers.ModelSerializer):
+    slug = serializers.CharField(source="perimetre_securite.slug")
+    libelle = serializers.CharField(source="perimetre_securite.libelle")
+    rayon = serializers.FloatField(source="perimetre_securite.rayon")
+    latitude = serializers.FloatField(source="perimetre_securite.latitude")
+    longitude = serializers.FloatField(source="perimetre_securite.longitude")
+    is_active = serializers.BooleanField()
+
+    class Meta:
+        model = ChildWithPerimetreSecurite
+        fields = ["slug", "libelle", "rayon", "latitude", "longitude", "is_active"]
