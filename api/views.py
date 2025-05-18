@@ -17,6 +17,8 @@ from rest_framework_simplejwt.tokens import AccessToken
 import io
 from django.http import JsonResponse
 from rest_framework.views import APIView
+from safedelete.models import HARD_DELETE
+
 
 
  
@@ -416,7 +418,7 @@ class sendNotificationOnly(generics.GenericAPIView):
 class DeleteUserView(generics.DestroyAPIView):
     def delete(self, request, *args, **kwargs):
         phone_or_email = request.data.get("phone_or_email")
-        password = request.data.get('password')
+        password = request.data.get('password')  # Si jamais tu veux vérifier un jour
 
         if not phone_or_email:
             return Response(
@@ -425,23 +427,22 @@ class DeleteUserView(generics.DestroyAPIView):
             )
 
         # Trouver l'utilisateur par email ou téléphone
-        user = None
-        if phone_or_email:
-            user = User.objects.filter(email=phone_or_email).first()
-        if phone_or_email and not user:
-            user = User.objects.filter(phone_number=phone_or_email).first()
+        user = User.objects.filter(email=phone_or_email).first() or User.objects.filter(phone_number=phone_or_email).first()
 
         if not user:
             return Response(
                 {"message": "Utilisateur non trouvé", "success": False, "code": 404},
                 status=status.HTTP_404_NOT_FOUND,
             )
+
         if user.user_type == "PARENT":
             family_members = FamilyMember.objects.filter(parent=user)
-            for family_member in family_members :
+            for family_member in family_members:
                 family_member.child.delete()
             family_members.delete()
-        user.delete()
+
+        user.delete(force_policy=HARD_DELETE)
+
         return Response(
             {"message": "Utilisateur supprimé avec succès", "success": True, "code": 200},
             status=status.HTTP_200_OK,
