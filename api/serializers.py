@@ -188,3 +188,13 @@ class PerimetreAssocieSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChildWithPerimetreSecurite
         fields = ["slug", "libelle", "rayon", "latitude", "longitude", "is_active"]
+
+class DeviceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Device
+        fields = '__all__'
+        
+class SerializerBatteryStatus(serializers.ModelSerializer):
+    class Meta:
+        model = BatteryStatus
+        fields = '__all__'
