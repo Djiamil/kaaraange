@@ -215,10 +215,21 @@ class SMS(models.Model):
     created_at = models.DateTimeField(default=timezone.now)
 
 
+# Model pour jouter non divices
+class Device(models.Model):
+    imei = models.CharField(max_length=20, unique=True)
+    model_name = models.CharField(max_length=50)
+    dev_type = models.CharField(max_length=20)
+    child = models.OneToOneField(Child, on_delete=models.CASCADE, related_name="device", null=True, blank=True)
 
+    def __str__(self):
+        return f"{self.model_name} ({self.imei})"
+    
+# Model pour stoquer les position de l'enfant
 class Location(models.Model):
     slug = models.SlugField(default=uuid.uuid1)
-    enfant = models.ForeignKey(Child, on_delete=models.CASCADE)  # Relation Many-to-One avec Child
+    enfant = models.ForeignKey(Child, on_delete=models.SET_NULL, null=True, blank=True)  # nullable
+    device = models.ForeignKey(Device, on_delete=models.SET_NULL, null=True, blank=True, related_name="locations")  # nullable
     latitude = models.CharField(max_length=50)  # ou une longueur appropriée pour les coordonnées
     longitude = models.CharField(max_length=50)  # ou une longueur appropriée pour les coordonnées
     adresse = models.CharField(max_length=255)
@@ -394,6 +405,24 @@ class Demande(models.Model):
 
     def __str__(self):
         return f"Demande de {self.relationship} pour {self.enfant} au parent {self.parent}"
+    
+# Model pour stoquer la baterie du divice
+class BatteryStatus(models.Model):
+    STATUS_CHOICES = [
+        ('1', 'Unknown'),
+        ('2', 'Charging'),
+        ('3', 'Not Charging'),
+        ('4', 'Disconnected'),
+        ('5', 'Fully Charged'),
+    ]
+
+    device = models.ForeignKey(Device, on_delete=models.CASCADE, related_name="battery_statuses")
+    battery = models.IntegerField()
+    status = models.CharField(max_length=1, choices=STATUS_CHOICES)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.device} - {self.battery}% ({self.get_status_display()})"
     
 # super admin kaaraange@gmail.com gthub prof edacy Darcia0001@gmail.com
 

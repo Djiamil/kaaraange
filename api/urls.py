@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 from . import parent
 from . import child
+from . import divice
 from django.urls import re_path
 
 
@@ -73,4 +74,9 @@ urlpatterns = [
     path('lislinkchildtoparent/', views.lislinkchildtoparent.as_view(), name='lislinkchildtoparent'), 
     path('qr-code/<int:pk>/', views.GetQRCode.as_view(), name='get_qr_code'),
     path('tesspositionEnfantInZone/<slug:slug>/', parent.tesspositionEnfantInZone.as_view(), name='tesspositionEnfantInZone'),
+    
+    # Debut des url pour les divices 
+    path('devices/', divice.AddDevice.as_view(), name='add-device'),  # POST = ajout device
+    path('devices/battery-status/', divice.BatteryStatusSave.as_view(), name='battery-status'),  # POST = status batterie
+    # Fin des url pour les divice
 ]
