@@ -423,6 +423,24 @@ class BatteryStatus(models.Model):
 
     def __str__(self):
         return f"{self.device} - {self.battery}% ({self.get_status_display()})"
+
+
+
+
+# Ce modèle permettra de stocker les 3 numéros abrégés pour chaque appareil :
+class FamilyNumber(models.Model):
+    slug = models.SlugField(default=uuid.uuid1)
+    device = models.ForeignKey(Device, on_delete=models.CASCADE, related_name='family_numbers')
+    serialnumber = models.IntegerField()  # 0, 1, 2
+    number = models.CharField(max_length=20)
+    name = models.CharField(max_length=10, null=True, blank=True)
+    url = models.URLField(blank=True, null=True)
+
+    class Meta:
+        unique_together = ('device', 'serialnumber')  # un seul numéro par bouton par appareil
+
+    def __str__(self):
+        return f"{self.device.imei} - {self.name} ({self.serialnumber})"
     
 # super admin kaaraange@gmail.com gthub prof edacy Darcia0001@gmail.com
 
