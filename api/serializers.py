@@ -198,3 +198,25 @@ class SerializerBatteryStatus(serializers.ModelSerializer):
     class Meta:
         model = BatteryStatus
         fields = '__all__'
+
+class FamilyNumberSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FamilyNumber
+        fields = ['id', 'device', 'number', 'serialnumber', 'name', 'url']
+        read_only_fields = ['serialnumber', 'name']
+
+    def create(self, validated_data):
+        device = validated_data["device"]
+        existing_numbers = FamilyNumber.objects.filter(device=device).count()
+
+        if existing_numbers >= 3:
+            raise serializers.ValidationError("Ce device a déjà 3 numéros enregistrés.")
+
+        # Attribution automatique du serialnumber
+        validated_data["serialnumber"] = existing_numbers
+
+        # Attribution automatique du nom : "111", "222", "333"
+        names = ["111", "222", "333"]
+        validated_data["name"] = names[existing_numbers]
+
+        return super().create(validated_data)

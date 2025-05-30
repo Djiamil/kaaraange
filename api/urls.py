@@ -76,7 +76,9 @@ urlpatterns = [
     path('tesspositionEnfantInZone/<slug:slug>/', parent.tesspositionEnfantInZone.as_view(), name='tesspositionEnfantInZone'),
     
     # Debut des url pour les divices 
-    path('devices/', divice.AddDevice.as_view(), name='add-device'),  # POST = ajout device
-    path('devices/battery-status/', divice.BatteryStatusSave.as_view(), name='battery-status'),  # POST = status batterie
+    path('devices/', divice.AddDevice.as_view(), name='add-device'),  # POST = ajout device 
+    path('devices/battery-status/', divice.BatteryStatusSave.as_view(), name='battery-status'),
+    path('device/family-number/', divice.WellStockFamilyNumberForDevice.as_view(), name='family-number-device'),
+    path('device/family-numbers/', divice.FamilyNumberView.as_view(), name='device/family-numbers/'),
     # Fin des url pour les divice
 ]
