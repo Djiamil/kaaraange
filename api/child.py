@@ -311,19 +311,56 @@ class AddLocalization(generics.RetrieveAPIView):
 
     def post(self, request, *args, **kwargs):
         serializer = LocationSerializer(data=request.data)
-        lat_enfant = float(request.data.get('latitude'))
-        lon_enfant = float(request.data.get('longitude'))
-        adresse = request.data.get('adresse')
+        lat_str = request.data.get('latitude')
+        lon_str = request.data.get('longitude')
 
+        lat_enfant = None
+        lon_enfant = None
+        if lat_str and lon_str:
+            lat_enfant = float(lat_str)
+            lon_enfant = float(lon_str)
+        adresse = request.data.get('adresse')
         
-        enfant_slug = request.data.get('enfant')
-        try:
-            child = Child.objects.get(slug=enfant_slug)
-            request.data['enfant'] = child.pk
-        except ObjectDoesNotExist:
+        enfant_slug = request.data.get('    ')
+        imei = request.data.get('device')
+
+        child = None
+        device = None
+
+        # Cas 1 : slug enfant fourni
+        if enfant_slug:
+            try:
+                child = Child.objects.get(slug=enfant_slug)
+                request.data['enfant'] = child.pk
+            except Child.DoesNotExist:
+                return Response({
+                    "data": None,
+                    "message": "Aucun enfant trouvé avec ce slug",
+                    "success": False,
+                    "code": 400
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Cas 2 : IMEI du device fourni
+        elif imei:
+            try:
+                device = Device.objects.get(imei=imei)
+                request.data['device'] = device.pk
+
+                # Si le Device est lié à un enfant
+                if device.child:
+                    request.data['enfant'] = device.child.pk
+                    child = device.child
+            except Device.DoesNotExist:
+                return Response({
+                    "data": None,
+                    "message": "Aucun device trouvé avec cet IMEI",
+                    "success": False,
+                    "code": 400
+                }, status=status.HTTP_400_BAD_REQUEST)
+        else:
             return Response({
                 "data": None,
-                "message": "Aucun enfant trouvé avec ce slug",
+                "message": "Aucun identifiant fourni (ni enfant, ni IMEI)",
                 "success": False,
                 "code": 400
             }, status=status.HTTP_400_BAD_REQUEST)
