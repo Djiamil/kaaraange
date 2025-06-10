@@ -321,7 +321,7 @@ class AddLocalization(generics.RetrieveAPIView):
             lon_enfant = float(lon_str)
         adresse = request.data.get('adresse')
         
-        enfant_slug = request.data.get('    ')
+        enfant_slug = request.data.get('enfant')
         imei = request.data.get('device')
 
         child = None
