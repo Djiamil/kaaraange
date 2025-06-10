@@ -230,10 +230,17 @@ class Location(models.Model):
     slug = models.SlugField(default=uuid.uuid1)
     enfant = models.ForeignKey(Child, on_delete=models.SET_NULL, null=True, blank=True)  # nullable
     device = models.ForeignKey(Device, on_delete=models.SET_NULL, null=True, blank=True, related_name="locations")  # nullable
-    latitude = models.CharField(max_length=50)  # ou une longueur appropriée pour les coordonnées
-    longitude = models.CharField(max_length=50)  # ou une longueur appropriée pour les coordonnées
-    adresse = models.CharField(max_length=255)
+    latitude = models.CharField(max_length=50, null=True, blank=True)  # ou une longueur appropriée pour les coordonnées
+    longitude = models.CharField(max_length=50, null=True, blank=True)  # ou une longueur appropriée pour les coordonnées
+    adresse = models.CharField(max_length=255,null=True, blank=True)
     datetime_localisation = models.DateTimeField(default=timezone.now)
+    location_type = models.CharField(
+        max_length=10,
+        choices=[('gps', 'GPS'), ('wifi', 'Wi-Fi'), ('cell', 'Cell')],
+        default='gps'
+    )
+    wifi_info = models.TextField(blank=True, null=True)
+    cell_info = models.TextField(blank=True, null=True)
 
     def __str__(self):
         return f"{self.enfant.nom} - {self.adresse} ({self.latitude}, {self.longitude})"
@@ -385,6 +392,7 @@ class ChildWithPerimetreSecurite(models.Model):
     is_active = models.BooleanField(default=False)
 
     def __str__(self):
+        
         return f"{self.child.nom} - {self.perimetre_securite.libelle} ({'Actif' if self.is_active else 'Inactif'})"
     
 class Demande(models.Model):
