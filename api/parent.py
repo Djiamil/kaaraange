@@ -335,39 +335,61 @@ class SendAlertAllEmergenctContactForParentToChild(generics.RetrieveAPIView):
             latitude = request.data.get('latitude', '')
             longitude = request.data.get('longitude', '')
             adresse = request.data.get('adresse', '')
-            try:
-                child = Child.objects.filter(slug=slug).first()
-                text = f"Vous avez reçu une alerte de votre enfant {child.prenom}."
+            wifi_info = request.data.get('wifi_info', '')
+            cell_info = request.data.get('cell_info', '')
+            device = Device.objects.filter(imei=slug).first()
+            if device :
+                location_type = request.data.get('location_type', '')
+                text = f"Vous avez reçu une alerte de votre enfant {device.model_name}."
                 alert = EmergencyAlert.objects.create(
-                    child=child,
+                    device=device,
                     alert_type= "Prévenu par l'enfant",
                     comment= text,
                     latitude=latitude,
                     longitude=longitude,
-                    adresse=adresse
+                    location_type = location_type,
+                    wifi_info = wifi_info,
+                    cell_info = cell_info
                 )
-                family_members = FamilyMember.objects.filter(child=child)
-                emergency_contacts = []
-                for family_member in family_members:
-                    parent = family_member.parent
-                    if parent :
-                        contacts = EmergencyContact.objects.filter(parent=parent)
-                        for contact in contacts:
-                            emergency_contacts.append(contact)
-                    if parent.fcm_token :
-                        token =parent.fcm_token
-                        text = f"Vous avez reçu une alerte de votre enfant {child.prenom}."
-                        try :
-                            send_simple_notification(token,text,"warning_sound")
-                        except Exception as e:  # Capturer toutes les exceptions
-                            print(f"Erreur lors de l'envoi de la notification à {parent}: {e}")
-                    AlertNotification.objects.create(alert=alert,type_notification='alerte', parent=parent)
-                for contact in emergency_contacts:
-                    text = f"Urgence ! Votre enfant {child.prenom} a besoin de votre attention immédiate. Prenez le temps de vérifier et de rassurer votre enfant."
-                    send_sms(contact.phone_number, text)
+                print('le emei du device')
+                print("Voila le slug",slug)
                 return Response({'data': None, 'message': 'Alert created and emergency contacts notified.',"success": True,"code" : 200}, status=status.HTTP_201_CREATED)
-            except Child.DoesNotExist:
-                return Response({'data': None, 'message': 'Child not found', 'success':True, "code" : 400}, status=status.HTTP_404_NOT_FOUND)
+            else :
+                try:
+                    child = Child.objects.filter(slug=slug).first()
+                    if not child:
+                        return Response({'data': None, 'message': 'Device or Child not found', 'success': True, "code": 404}, status=status.HTTP_404_NOT_FOUND)
+                    text = f"Vous avez reçu une alerte de votre enfant {child.prenom}."
+                    alert = EmergencyAlert.objects.create(
+                        child=child,
+                        alert_type= "Prévenu par l'enfant",
+                        comment= text,
+                        latitude=latitude,
+                        longitude=longitude,
+                        adresse=adresse
+                    )
+                    family_members = FamilyMember.objects.filter(child=child)
+                    emergency_contacts = []
+                    for family_member in family_members:
+                        parent = family_member.parent
+                        if parent :
+                            contacts = EmergencyContact.objects.filter(parent=parent)
+                            for contact in contacts:
+                                emergency_contacts.append(contact)
+                        if parent.fcm_token :
+                            token =parent.fcm_token
+                            text = f"Vous avez reçu une alerte de votre enfant {child.prenom}."
+                            try :
+                                send_simple_notification(token,text,"warning_sound")
+                            except Exception as e:  # Capturer toutes les exceptions
+                                print(f"Erreur lors de l'envoi de la notification à {parent}: {e}")
+                        AlertNotification.objects.create(alert=alert,type_notification='alerte', parent=parent)
+                    for contact in emergency_contacts:
+                        text = f"Urgence ! Votre enfant {child.prenom} a besoin de votre attention immédiate. Prenez le temps de vérifier et de rassurer votre enfant."
+                        send_sms(contact.phone_number, text)
+                    return Response({'data': None, 'message': 'Alert created and emergency contacts notified.',"success": True,"code" : 200}, status=status.HTTP_201_CREATED)
+                except Child.DoesNotExist:
+                    return Response({'data': None, 'message': 'Child not found', 'success':True, "code" : 400}, status=status.HTTP_404_NOT_FOUND)
 
 # Views pour lister les notification d'alerte recu par le parent
 
