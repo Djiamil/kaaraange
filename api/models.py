@@ -300,7 +300,7 @@ class EmergencyAlert(models.Model):
     ]
     slug = models.SlugField(default=uuid.uuid1)
     id = models.AutoField(primary_key=True)
-    child = models.ForeignKey('Child', on_delete=models.CASCADE)
+    child = models.ForeignKey('Child', on_delete=models.CASCADE, null=True, blank=True)
     alert_type = models.CharField(max_length=20, choices=ALERT_TYPE_CHOICES, default="Prévenu par l'enfant")
     comment = models.TextField()
     alert_datetime = models.DateTimeField(auto_now_add=True)
@@ -309,10 +309,18 @@ class EmergencyAlert(models.Model):
     longitude = models.CharField(max_length=50, blank=True, null=True)  # ou une longueur appropriée pour les coordonnées
     adresse = models.CharField(max_length=255, blank=True, null=True)
     datetime_localisation = models.DateTimeField(default=timezone.now)
-
-
+    location_type = models.CharField(
+        max_length=10,
+        choices=[('gps', 'GPS'), ('wifi', 'Wi-Fi'), ('cell', 'Cell')],
+        default='gps'
+    )
+    device = models.ForeignKey(Device, on_delete=models.CASCADE, null=True, blank=True, related_name="alert_device_statuses")
+    wifi_info = models.TextField(blank=True, null=True)
+    cell_info = models.TextField(blank=True, null=True)
+    
     def __str__(self):
-        return f"Alert {self.alert_type} for {self.child.nom} on {self.alert_datetime}"
+        child_name = self.child.nom if self.child else "Unknown Child"
+        return f"Alert {self.alert_type} for {child_name} on {self.alert_datetime}"
 
     
 class AlertNotification(models.Model):
