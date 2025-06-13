@@ -243,7 +243,8 @@ class Location(models.Model):
     cell_info = models.TextField(blank=True, null=True)
 
     def __str__(self):
-        return f"{self.enfant.nom} - {self.adresse} ({self.latitude}, {self.longitude})"
+        enfant_nom = self.enfant.nom if self.enfant else "Sans enfant"
+        return f"{enfant_nom} - {self.adresse or 'Adresse inconnue'} ({self.latitude or 'lat?'}, {self.longitude or 'lon?'})"
 
 # Model pour enregistre les alergie des enfants
 class Allergy(models.Model):
