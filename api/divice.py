@@ -24,19 +24,25 @@ from django.utils.dateparse import parse_datetime
 from rest_framework.views import APIView
 
 
-
+# Instancier un logger
+logger = logging.getLogger(__name__)
 class AddDevice(generics.CreateAPIView):
     serializer_class = DeviceSerializer
     queryset = Device.objects.all()
 
     def post(self, request, *args, **kwargs):
+        logger.info("📩 Requête POST reçue pour ajout de device")
+        logger.debug(f"Données reçues : {request.data}")
+
         child_slug = request.data.get("child_slug")
         child = None
 
         if child_slug:
             try:
                 child = Child.objects.get(slug=child_slug)
+                logger.info(f"Enfant trouvé : {child.slug}")
             except Child.DoesNotExist:
+                logger.warning(f"Aucun enfant trouvé pour le slug : {child_slug}")
                 return Response({
                     "data": None,
                     "message": "Aucun enfant trouvé",
@@ -44,14 +50,15 @@ class AddDevice(generics.CreateAPIView):
                     "code": 404
                 }, status=status.HTTP_404_NOT_FOUND)
 
-        # Création du device avec ou sans enfant
         data = request.data.copy()
         if child:
             data["child"] = child.id
 
         serializer = self.get_serializer(data=data)
+
         if serializer.is_valid():
             serializer.save()
+            logger.info(f"✅ Device ajouté avec succès : {serializer.data}")
             return Response({
                 "data": serializer.data,
                 "message": "Device ajouté avec succès",
@@ -59,6 +66,7 @@ class AddDevice(generics.CreateAPIView):
                 "code": 201
             }, status=status.HTTP_201_CREATED)
         else:
+            logger.error(f"❌ Erreurs de validation : {serializer.errors}")
             return Response({
                 "data": serializer.errors,
                 "message": "Erreur de validation",
