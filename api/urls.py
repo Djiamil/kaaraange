@@ -80,5 +80,7 @@ urlpatterns = [
     path('devices/battery-status/', divice.BatteryStatusSave.as_view(), name='battery-status'),
     path('device/family-number/', divice.WellStockFamilyNumberForDevice.as_view(), name='family-number-device'),
     path('device/family-numbers/', divice.FamilyNumberView.as_view(), name='device/family-numbers/'),
-    # Fin des url pour les divice
+    path('geolocaliser_par_wifi_mozilla/', divice.GeolocaliserParWifiMozilla.as_view(), name='geolocaliser_par_wifi_mozilla'),
+    path('device_parent_to_family_member/', divice.ReleaseParentToDevice.as_view(), name='device_parent_to_family_member'),
+    # Fin des url pour les divice 
 ]
