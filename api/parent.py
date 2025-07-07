@@ -253,6 +253,8 @@ class ListeUserActifInactif(generics.GenericAPIView):
         }, status=status.HTTP_200_OK)
 
 # Cette views nous permetra de lister tous  les information qui concerne le parent
+from itertools import chain
+
 class ParentDashbord(generics.RetrieveAPIView):
     queryset = Parent.objects.all()
     serializer_class = ParentSerializer
@@ -260,16 +262,8 @@ class ParentDashbord(generics.RetrieveAPIView):
 
     def get(self, request, *args, **kwargs):
         slug = self.kwargs.get('slug')
-        try:
-            parent = get_object_or_404(Parent, slug=slug)
-        except Parent.DoesNotExist:
-            return Response({
-                "data": None,
-                "message": 'Aucun parent trouvé',
-                "success": False,
-                "code": 400
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
+        parent = get_object_or_404(Parent, slug=slug)
+
         famille = FamilyMember.objects.filter(parent=parent)
         if not famille.exists():
             return Response({
@@ -279,14 +273,22 @@ class ParentDashbord(generics.RetrieveAPIView):
                 "code": 200
             }, status=status.HTTP_200_OK)
 
-        children = [member.child for member in famille]
+        # Filtrer les enfants non null
+        children = [member.child for member in famille if member.child]
+        devices = [member.device for member in famille if member.device]
+
+        serialized_children = ChildSerializerDetail(children, many=True).data
+        serialized_devices = DeviceSerializer(devices, many=True).data
+
+        # Tu peux soit les fusionner dans une seule liste, soit les séparer dans deux clés
+        all_linked = serialized_children + serialized_devices
 
         return Response({
             "data": {
                 "parent": ParentSerializer(parent).data,
-                "children": ChildSerializerDetail(children, many=True).data
+                "children": all_linked,
             },
-            'message': 'Détails des enfants',
+            'message': 'Détails des enfants et appareils liés',
             'success': True,
             'code': 200
         }, status=status.HTTP_200_OK)

@@ -249,3 +249,220 @@ class FamilyNumberView(APIView):
             "message": "Operation Successfully"
         }, status=status.HTTP_200_OK)
         
+        
+        
+class GeolocaliserParWifiMozilla(APIView):
+    def post(self, request):
+        """
+        POST attendu :
+        {
+            "wifi_data": "mac,-strength,ssid|mac,-strength,ssid|..."
+        }
+        """
+        wifi_data_str = request.data.get("wifi_data")
+
+        if not wifi_data_str:
+            return Response({
+                "success": False,
+                "message": "wifi_data est requis",
+                "code": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 🔧 Parse du wifi_data
+        wifi_data = []
+        try:
+            points = wifi_data_str.split("|")
+            for point in points:
+                parts = point.split(",")
+                if len(parts) >= 2:
+                    mac = parts[0].strip()
+                    strength = int(parts[1].strip())
+                    wifi_data.append({"macAddress": mac, "signalStrength": strength})
+        except Exception as e:
+            return Response({
+                "success": False,
+                "message": f"Erreur lors de l'analyse : {str(e)}"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 🌍 Appel Mozilla Location Service
+        url = "https://location.services.mozilla.com/v1/geolocate?key=test"
+        payload = {"wifiAccessPoints": wifi_data}
+
+        try:
+            response = requests.post(url, json=payload)
+            response.raise_for_status()
+            result = response.json()
+
+            return Response({
+                "success": True,
+                "latitude": result['location']['lat'],
+                "longitude": result['location']['lng'],
+                "accuracy": result.get('accuracy'),
+                "message": "Position récupérée avec succès"
+            }, status=status.HTTP_200_OK)
+
+        except requests.exceptions.HTTPError as http_err:
+            return Response({
+                "success": False,
+                "error": f"Erreur HTTP: {http_err}",
+                "details": response.text
+            }, status=status.HTTP_502_BAD_GATEWAY)
+
+        except Exception as e:
+            return Response({
+                "success": False,
+                "error": f"Erreur interne : {str(e)}"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+
+# Cette fonction permet juste d'ajouter des serial number pour les bouton du device
+def registerFamilyNumberForDevice(number,device_identity):
+
+        if not device_identity:
+            return Response({
+                "data": None,
+                "message": "Veuillez fournir un identifiant de device",
+                "success": False,
+                "code": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            device = Device.objects.get(imei=device_identity)
+        except Device.DoesNotExist:
+            return Response({
+                "data": None,
+                "message": "Device introuvable",
+                "success": False,
+                "code": 404
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # Vérifier si le numéro est déjà enregistré pour ce device
+        if FamilyNumber.objects.filter(device=device, number=number).exists():
+            return Response({
+                "data": None,
+                "message": "Ce numéro est déjà enregistré pour ce device",
+                "success": False,
+                "code": 409
+            }, status=status.HTTP_409_CONFLICT)
+
+        # Vérifier qu'on n'a pas déjà 3 numéros
+        existing = FamilyNumber.objects.filter(device=device)
+        if existing.count() >= 3:
+            return Response({
+                "data": None,
+                "message": "Limite de 3 numéros atteinte pour ce device",
+                "success": False,
+                "code": 403
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        # Trouver le serialnumber libre (0, 1 ou 2)
+        used_serials = existing.values_list("serialnumber", flat=True)
+        for i in range(3):
+            if i not in used_serials:
+                serialnumber = i
+                break
+
+        # Générer automatiquement le nom en fonction du serialnumber
+        names = {0: "111", 1: "2222", 2: "3333"}
+        name = names.get(serialnumber)
+
+        data = {
+            "device": device.id,
+            "number": number,
+            "serialnumber": serialnumber,
+            "name": name
+        }
+
+        serializer = FamilyNumberSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                "data": serializer.data,
+                "message": "Numéro enregistré avec succès",
+                "success": True,
+                "code": 201
+            }, status=status.HTTP_201_CREATED)
+        else:
+            return Response({
+                "data": serializer.errors,
+                "message": "Erreur de validation",
+                "success": False,
+                "code": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+class ReleaseParentToDevice(generics.CreateAPIView):
+    serializer_class = DeviceSerializer
+    queryset = Device.objects.all()
+
+    def post(self, request, *args, **kwargs):
+        numbers = request.data.get("numbers")
+        emei = request.data.get("emei")
+        nom = request.data.get("nom")
+        prenom = request.data.get("prenom")
+        slug_parent = request.data.get("slug_parent")
+        relation = request.data.get("relation")
+
+        if not emei or not slug_parent:
+            return Response({
+                "data": None,
+                "message": "Identifiants manquants (imei ou slug_parent)",
+                "success": False,
+                "code": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            parent = Parent.objects.get(slug=slug_parent)
+        except Parent.DoesNotExist:
+            return Response({
+                "data": None,
+                "message": "Aucun parent trouvé pour cet identifiant",
+                "success": False,
+                "code": 404
+            }, status=status.HTTP_404_NOT_FOUND)
+        try:
+            device = Device.objects.filter(imei=emei).first()
+        except Device.DoesNotExist:
+            return Response({
+                "data": None,
+                "message": "Aucun device trouvé pour cet identifiant",
+                "success": False,
+                "code": 404
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # Vérifier si déjà lié
+        famille = FamilyMember.objects.filter(device=device, parent=parent).first()
+        if famille:
+            return Response({
+                "data": None,
+                "message": "Ce parent est déjà lié à ce device.",
+                "success": False,
+                "code": 409
+            }, status=status.HTTP_409_CONFLICT)
+
+        # Créer le lien famille
+        family_member = FamilyMember.objects.create(
+            relation=relation,
+            parent=parent,
+            device=device
+        )
+
+        # Mettre à jour les infos du device
+        device.nom = nom
+        device.prenom = prenom
+        device.save()
+
+        # Enregistrer les numéros associés
+        if numbers:
+            for number in numbers:
+                registerFamilyNumberForDevice(number, emei)
+
+        # Sérialisation
+        serialized_data = FamilyMemberSerializer(family_member).data
+
+        return Response({
+            "data": serialized_data,
+            "message": "Information enregistrée avec succès. Le parent peut suivre l'enfant à partir du device.",
+            "success": True,
+            "code": 200
+        }, status=status.HTTP_200_OK)
+        
+            

@@ -128,6 +128,20 @@ class ParentChildLink(models.Model):
     def __str__(self):
         return f"{self.child} - {self.child}"
 
+# Model pour jouter non divices
+class Device(models.Model):
+    imei = models.CharField(max_length=20, unique=True)
+    model_name = models.CharField(max_length=50)
+    dev_type = models.CharField(max_length=20)
+    child = models.OneToOneField(Child, on_delete=models.CASCADE, related_name="device", null=True, blank=True)
+    nom = models.CharField(max_length=100, null=True, blank=True)
+    prenom = models.CharField(max_length=100, null=True, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+
+    def __str__(self):
+        return f"{self.model_name} ({self.imei})"
+    
 class FamilyMember(models.Model):
     PAPA = 'papa'
     MAMAN = 'maman'
@@ -147,8 +161,9 @@ class FamilyMember(models.Model):
     slug = models.SlugField(default=uuid.uuid1)
     relation = models.CharField(max_length=100, choices=RELATIONSHIP_CHOICES)
     parent = models.ForeignKey(Parent, on_delete=models.CASCADE, blank=True, null=True)
-    child = models.ForeignKey(Child, on_delete=models.CASCADE)
-    created_at = models.DateTimeField(auto_now_add=True, null=True,blank=True)  # Ajout de created_at
+    child = models.ForeignKey(Child, on_delete=models.CASCADE, blank=True,null=True)
+    device = models.ForeignKey(Device, on_delete=models.CASCADE, blank=True,null=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True,blank=True)
 
     def __str__(self):
         return f"{self.relation}: {self.parent} - {self.child}"
@@ -213,17 +228,6 @@ class SMS(models.Model):
     text = models.TextField()
     to = models.CharField(max_length=255)
     created_at = models.DateTimeField(default=timezone.now)
-
-
-# Model pour jouter non divices
-class Device(models.Model):
-    imei = models.CharField(max_length=20, unique=True)
-    model_name = models.CharField(max_length=50)
-    dev_type = models.CharField(max_length=20)
-    child = models.OneToOneField(Child, on_delete=models.CASCADE, related_name="device", null=True, blank=True)
-
-    def __str__(self):
-        return f"{self.model_name} ({self.imei})"
     
 # Model pour stoquer les position de l'enfant
 class Location(models.Model):
@@ -437,6 +441,7 @@ class BatteryStatus(models.Model):
     battery = models.IntegerField()
     status = models.CharField(max_length=1, choices=STATUS_CHOICES)
     timestamp = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
         return f"{self.device} - {self.battery}% ({self.get_status_display()})"
