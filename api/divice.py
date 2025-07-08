@@ -396,7 +396,7 @@ class ReleaseParentToDevice(generics.CreateAPIView):
 
     def post(self, request, *args, **kwargs):
         numbers = request.data.get("numbers")
-        emei = request.data.get("emei")
+        emei = request.data.get("imei")
         nom = request.data.get("nom")
         prenom = request.data.get("prenom")
         slug_parent = request.data.get("slug_parent")
