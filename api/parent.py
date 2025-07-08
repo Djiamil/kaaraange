@@ -278,7 +278,7 @@ class ParentDashbord(generics.RetrieveAPIView):
         devices = [member.device for member in famille if member.device]
 
         serialized_children = ChildSerializerDetail(children, many=True).data
-        serialized_devices = DeviceSerializer(devices, many=True).data
+        serialized_devices = DeviceSerializerDetail(devices, many=True).data
 
         # Tu peux soit les fusionner dans une seule liste, soit les séparer dans deux clés
         all_linked = serialized_children + serialized_devices
