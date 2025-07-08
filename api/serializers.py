@@ -199,6 +199,20 @@ class SerializerBatteryStatus(serializers.ModelSerializer):
         model = BatteryStatus
         fields = '__all__'
 
+
+class DeviceSerializerDetail(serializers.ModelSerializer):
+    last_location = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Device
+        fields = ['id', 'imei', 'model_name', 'dev_type', 'nom', 'prenom', 'created_at', 'last_location']
+
+    def get_last_location(self, obj):
+        last_location = Location.objects.filter(device=obj).order_by('-datetime_localisation').first()
+        if last_location:
+            return LocationSerializer(last_location).data
+        return None
+
 class FamilyNumberSerializer(serializers.ModelSerializer):
     class Meta:
         model = FamilyNumber
