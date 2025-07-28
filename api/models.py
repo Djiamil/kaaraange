@@ -130,6 +130,7 @@ class ParentChildLink(models.Model):
 
 # Model pour jouter non divices
 class Device(models.Model):
+    slug = models.SlugField(default=uuid.uuid1)
     imei = models.CharField(max_length=20, unique=True)
     model_name = models.CharField(max_length=50)
     dev_type = models.CharField(max_length=20)
@@ -137,7 +138,26 @@ class Device(models.Model):
     nom = models.CharField(max_length=100, null=True, blank=True)
     prenom = models.CharField(max_length=100, null=True, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
-
+    # Champs similaires à ceux de l’enfant
+    email = models.EmailField(unique=True, null=True, blank=True)
+    phone_number = models.CharField(max_length=15, unique=True, null=True, blank=True)
+    password = models.CharField(max_length=255, null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    is_archive = models.BooleanField(default=False)
+    is_staff = models.BooleanField(default=False)
+    user_type = models.CharField(max_length=50, choices=USER_TYPES, default='device')
+    accepted_terms = models.BooleanField(default=False)
+    registration_method = models.CharField(max_length=50, choices=REGISTRATION_METHOD, null=True, blank=True)
+    otp_token = models.CharField(max_length=6, null=True, blank=True)
+    gender = models.CharField(max_length=10, null=True, blank=True)
+    date_de_naissance = models.DateField(null=True, blank=True)
+    type_appareil = models.CharField(max_length=100, null=True, blank=True)
+    vous_appelle_til = models.CharField(max_length=100, null=True, blank=True)
+    numeros_urgences = models.TextField(null=True, blank=True)
+    ecole = models.CharField(max_length=100, null=True, blank=True)
+    battery_level = models.IntegerField(default=100)
+    avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
+    fcm_token = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
         return f"{self.model_name} ({self.imei})"
@@ -258,6 +278,8 @@ class Allergy(models.Model):
     allergy_type = models.CharField(max_length=100)  # Champ de texte libre pour le type d'allergie
     description = models.TextField(blank=True, null=True)
     date_identified = models.DateField(default=timezone.now)
+    device = models.ForeignKey(Device, on_delete=models.SET_NULL, null=True, blank=True, related_name="allergies_device")  # nullable
+
 
     def __str__(self):
         return f"{self.allergy_type} allergy for {self.child.nom}"
@@ -267,6 +289,7 @@ class MedicalIssue(models.Model):
     slug = models.SlugField(default=uuid.uuid1, unique=True)
     id = models.AutoField(primary_key=True)
     child = models.ForeignKey(Child, related_name='medical_issues', on_delete=models.CASCADE)
+    device = models.ForeignKey(Device, on_delete=models.SET_NULL, null=True, blank=True, related_name="medical_issues_device")  # nullable
     issue_type = models.CharField(max_length=100)  # Type de problème médical
     description = models.TextField(blank=True, null=True)
     date_identified = models.DateField(default=timezone.now)
