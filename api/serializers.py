@@ -201,11 +201,25 @@ class SerializerBatteryStatus(serializers.ModelSerializer):
 
 
 class DeviceSerializerDetail(serializers.ModelSerializer):
+    allergies = serializers.SerializerMethodField()
+    medical_issues = serializers.SerializerMethodField()
     last_location = serializers.SerializerMethodField()
 
     class Meta:
         model = Device
-        fields = ['id', 'imei', 'model_name', 'dev_type', 'nom', 'prenom', 'created_at', 'last_location']
+        fields = [
+            'id', 'slug', 'imei', 'model_name', 'dev_type', 'email', 'phone_number',
+            'password', 'prenom', 'nom', 'is_active', 'is_archive', 'user_type',
+            'accepted_terms', 'registration_method', 'otp_token', 'gender',
+            'date_de_naissance', 'type_appareil', 'numeros_urgences', 'ecole',
+            'battery_level', 'avatar', 'allergies', 'medical_issues', 'last_location'
+        ]
+
+    def get_allergies(self, obj):
+        return ChildAlergySerializer(obj.allergies_device.all(), many=True).data
+
+    def get_medical_issues(self, obj):
+        return MedicalIssueSerializer(obj.medical_issues_device.all(), many=True).data
 
     def get_last_location(self, obj):
         last_location = Location.objects.filter(device=obj).order_by('-datetime_localisation').first()

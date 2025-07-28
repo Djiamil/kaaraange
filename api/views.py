@@ -86,13 +86,13 @@ class LoginViews(TokenObtainPairView):
         elif registration_method in ['GOOGLE', 'FACEBOOK', 'APPLE']:
             # Créer un nouvel utilisateur dans la base de données avec la méthode de connexion externe
             user = Parent.objects.create(email=email,
-                                         phone_number=phone_number,
-                                         prenom = prenom,
-                                         nom = nom,
-                                         adresse=adresse,
-                                         gender = gender,
-                                         avatar = avatar,
-                                         registration_method=registration_method,password=make_password(password))
+                phone_number=phone_number,
+                prenom = prenom,
+                nom = nom,
+                adresse=adresse,
+                gender = gender,
+                avatar = avatar,
+                registration_method=registration_method,password=make_password(password))
             # Générer le token d'accès et retourner les informations de l'utilisateur
             access_token = AccessToken.for_user(user)
             serializer = UserSerializer(user)
