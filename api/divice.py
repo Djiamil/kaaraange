@@ -419,7 +419,7 @@ class ReleaseParentToDevice(generics.CreateAPIView):
                 "code": 404
             }, status=status.HTTP_404_NOT_FOUND)
         try:
-            device = Device.objects.filter(imei=emei).first()
+            device = Device.objects.get(imei=emei)
         except Device.DoesNotExist:
             return Response({
                 "data": None,
