@@ -151,10 +151,17 @@ class DetailDemandeSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class ChildWithPerimetreSecuriteSerializer(serializers.ModelSerializer):
-    child = ChildSerializer()  # Charger les détails de l'enfant
+    child = serializers.SerializerMethodField()
+
     class Meta:
         model = ChildWithPerimetreSecurite
         fields = '__all__'
+
+    def get_child(self, obj):
+        instance = obj.child if obj.child else obj.device
+        if instance:
+            return ChildSerializer(instance).data
+        return None
 
 
 class ListeChildWithPerimetreSecuriteSerializer(serializers.ModelSerializer):

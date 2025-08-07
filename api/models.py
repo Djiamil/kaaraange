@@ -423,13 +423,21 @@ class PerimetreSecurite(models.Model):
 # Nouvelle process de lier un perimetre de securite a un enfant pour pouvoir l'activer ou la desactiver
 class ChildWithPerimetreSecurite(models.Model):
     slug = models.SlugField(default=uuid.uuid4, unique=True)
-    child = models.ForeignKey(Child, on_delete=models.CASCADE)
+    child = models.ForeignKey(Child, on_delete=models.CASCADE, null=True, blank=True)
+    device = models.ForeignKey(Device, on_delete=models.CASCADE, null=True, blank=True, related_name="perimetre_secure_device")
     perimetre_securite = models.ForeignKey(PerimetreSecurite, on_delete=models.CASCADE)
     is_active = models.BooleanField(default=False)
 
     def __str__(self):
-        
-        return f"{self.child.nom} - {self.perimetre_securite.libelle} ({'Actif' if self.is_active else 'Inactif'})"
+        if self.child:
+            nom = self.child.nom
+        elif self.device:
+            nom = self.device.nom
+        else:
+            nom = "Aucun"
+
+        return f"{nom} - {self.perimetre_securite.libelle} ({'Actif' if self.is_active else 'Inactif'})"
+
     
 class Demande(models.Model):
     STATUS_CHOICES = [
