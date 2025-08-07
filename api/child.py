@@ -367,9 +367,14 @@ class AddLocalization(generics.RetrieveAPIView):
         
         if serializer.is_valid():
             location = serializer.save()
-            perimetre_securite = ChildWithPerimetreSecurite.objects.filter(child__slug=enfant_slug,is_active=True).first()
-            if perimetre_securite :
-                resultat = verifier_enfant_dans_zone(enfant_slug, lat_enfant, lon_enfant,adresse)
+            if child:
+                perimetre_securite = ChildWithPerimetreSecurite.objects.filter(child__slug=enfant_slug,is_active=True).first()
+                if perimetre_securite :
+                    resultat = verifier_enfant_dans_zone(enfant_slug, lat_enfant, lon_enfant,adresse)
+            elif device:
+                perimetre_securite = ChildWithPerimetreSecurite.objects.filter(device__slug=enfant_slug,is_active=True).first()
+                if perimetre_securite :
+                    resultat = verifier_enfant_dans_zone_device(device.slug, lat_enfant, lon_enfant,adresse)
             return Response({
                 "data": {
                     "location": LocationSerializer(location).data
@@ -389,21 +394,36 @@ class AddLocalization(generics.RetrieveAPIView):
 # recuperer le dernier emplacement de l'enfant 
 class LastPosition(generics.RetrieveAPIView):
     serializer_class = LocationSerializer
-
+    queryset = Child.objects.all()
+    lookup_field = 'slug'
     def get(self, request, *args, **kwargs):
         slug = self.kwargs.get('slug')
 
+        child = None
+        device = None
+
         try:
-            child = get_object_or_404(Child, slug=slug)
+            child = Child.objects.get(slug=slug)
         except Child.DoesNotExist:
+            pass
+
+        try:
+            device = Device.objects.get(slug=slug)
+        except Device.DoesNotExist:
+            pass
+
+        if child:
+            last_emplacement = Location.objects.filter(enfant=child,location_type="gps").last()
+        elif device:
+            last_emplacement = Location.objects.filter(device=device,location_type="gps").last()
+        else:
             return Response({
                 "data": None,
-                "message": "Aucun enfant trouvé",
+                "message": "Enfant ou appareil non trouvé",
                 "success": False,
-                "code": 400
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        last_emplacement = Location.objects.filter(enfant=child).last()
+                "code": 404
+            }, status=status.HTTP_404_NOT_FOUND)
+
         if last_emplacement:
             serializer = self.get_serializer(last_emplacement)
             return Response({
@@ -415,11 +435,10 @@ class LastPosition(generics.RetrieveAPIView):
         else:
             return Response({
                 "data": None,
-                "message": "Aucun emplacement trouvé pour cet enfant",
+                "message": "Aucun emplacement trouvé pour cet enfant ou device",
                 "success": False,
                 "code": 404
             }, status=status.HTTP_404_NOT_FOUND)
-
 # Recupere la trajectoir de l'enfant les differente point enregistre dans la journés
 class DailyTrajectoryView(generics.ListAPIView):
     serializer_class = LocationSerializer
@@ -428,7 +447,19 @@ class DailyTrajectoryView(generics.ListAPIView):
         slug = self.kwargs.get('slug')
         
         # Vérifier si l'enfant existe   
-        child = get_object_or_404(Child, slug=slug)
+        child = None
+        device = None
+
+        try:
+            child = Child.objects.get(slug=slug)
+        except Child.DoesNotExist:
+            pass
+
+        try:
+            device = Device.objects.get(slug=slug)
+        except Device.DoesNotExist:
+            pass
+
         today = timezone.now()
 
         if type == "7days":
@@ -448,11 +479,25 @@ class DailyTrajectoryView(generics.ListAPIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         # Filtrer les emplacements de l'enfant pour la période spécifiée
-        locations = Location.objects.filter(
-            enfant=child,
-            datetime_localisation__gte=start_date,
-            datetime_localisation__lt=today
-        ).order_by('-datetime_localisation')
+        if child:
+            locations = Location.objects.filter(
+                enfant=child,
+                datetime_localisation__gte=start_date,
+                datetime_localisation__lt=today
+            ).order_by('-datetime_localisation')
+        elif device:
+            locations = Location.objects.filter(
+                device=device,
+                datetime_localisation__gte=start_date,
+                datetime_localisation__lt=today
+            ).order_by('-datetime_localisation')
+        else:
+            return Response({
+                "data": None,
+                "message": "Enfant ou appareil non trouvé",
+                "success": False,
+                "code": 404
+            }, status=status.HTTP_404_NOT_FOUND)
 
         if locations.exists():
             serializer = self.get_serializer(locations, many=True)
@@ -462,9 +507,17 @@ class DailyTrajectoryView(generics.ListAPIView):
                 datetime_str = loc['datetime_localisation']
                 datetime_obj = parse_datetime(datetime_str) if isinstance(datetime_str, str) else datetime_str
                 if datetime_obj:
+                    nom = None
+                    prenom = None
+                    if child:
+                        nom = child.nom
+                        prenom = child.prenom
+                    elif device:
+                        nom = device.nom
+                        prenom = device.prenom
                     formatted_data.append({
                         "data" : loc,
-                        "detail_message": f"Vous avez consulté l'historique des déplacements de {child.nom}. {child.nom} s'est rendu(e) à “{loc['adresse']}” le {timezone.localtime(datetime_obj).strftime('%d %B à %Hh%M')}."
+                        "detail_message": f"Vous avez consulté l'historique des déplacements de {prenom}. {nom} s'est rendu(e) à “{loc['adresse']}” le {timezone.localtime(datetime_obj).strftime('%d %B à %Hh%M')}."
                     })
             return Response({
                 "data": formatted_data,

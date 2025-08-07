@@ -233,3 +233,129 @@ def verifier_enfant_dans_zone(slug, lat_enfant, lon_enfant,adresse):
             'enfant_dans_zone': False,
             'message': 'Aucun périmètre de sécurité trouvé pour cet enfant.'
         }, status=status.HTTP_404_NOT_FOUND)
+
+
+def verifier_enfant_dans_zone_device(slug, lat_enfant, lon_enfant,adresse):
+    try:
+        # Récupérer le périmètre de sécurité associé à l'enfant
+        child_with_perimetre = ChildWithPerimetreSecurite.objects.filter(device__slug=slug,is_active=True).first()
+        perimetre_securite = child_with_perimetre.perimetre_securite
+        
+        # Récupérer le rayon du périmètre de sécurité
+        rayon = perimetre_securite.rayon
+
+        # Récupérer les coordonnées du point de référence
+        point_trajet_latitude = perimetre_securite.latitude
+        point_trajet_longitude = perimetre_securite.longitude
+
+        # Calculer la distance entre la position actuelle de l'enfant et le point de référence
+        distance_enfant_point = calculer_distance(
+            point_trajet_latitude, point_trajet_longitude, lat_enfant, lon_enfant
+        )
+
+        # Vérifier si la distance dépasse le rayon du périmètre de sécurité
+        if distance_enfant_point <= rayon:
+            return Response({
+                'enfant_dans_zone': True,
+                'distance': distance_enfant_point,
+                'message': 'L\'enfant est dans la zone de sécurité.'
+            }, status=status.HTTP_200_OK)
+        
+        else:
+            # Envoi des alertes et notifications si l'enfant est hors de la zone
+            try:
+                device = Device.objects.filter(slug=slug).first()
+                print("le device est la" , device)
+                text = f"Alerte importante : Votre enfant {device.prenom} est sorti de sa zone de sécurité. Nous vous invitons à agir rapidement pour vous assurer qu'il est en sécurité. Si cette situation persiste, une autre alerte sera envoyée dans 5 minutes."
+
+                # Récupérer la dernière alerte pour l'enfant
+                child_alert = EmergencyAlert.objects.filter(device__slug=slug,alert_type="danger").last()
+                if child_alert:
+                # Si l'enfant a été hors de la zone pendant plus de 5 minutes
+                    if child_alert and timezone.now() - child_alert.datetime_localisation >= timedelta(minutes=5):
+                        alert = EmergencyAlert.objects.create(
+                            device=device,
+                            alert_type="danger",
+                            comment=text,
+                            latitude=lat_enfant,
+                            longitude=lon_enfant,
+                            adresse=adresse
+                        )
+                        
+                        # Envoi des notifications aux membres de la famille et contacts d'urgence
+                        family_members = FamilyMember.objects.filter(device=device)
+                        emergency_contacts = []
+                        for family_member in family_members:
+                            parent = family_member.parent
+                            if parent:
+                                contacts = EmergencyContact.objects.filter(parent=parent)
+                                for contact in contacts:
+                                    emergency_contacts.append(contact)
+                                if parent.fcm_token:
+                                    token = parent.fcm_token
+                                    try:
+                                        send_simple_notification(token,text,"warning_sound")
+                                    except Exception as e:
+                                        print(f"Erreur lors de l'envoi de la notification à {parent}: {e}")
+                                AlertNotification.objects.create(alert=alert, type_notification='alerte', parent=parent)
+                        for contact in emergency_contacts:
+                            send_sms(contact.phone_number, text)
+                        
+                        return Response({
+                            'enfant_dans_zone': False,
+                            'distance': distance_enfant_point,
+                            'message': 'Alerte ! L\'enfant est hors de la zone de sécurité. Alertes envoyées.'
+                        }, status=status.HTTP_200_OK)
+                    else:
+                        # Si l'alerte a été envoyée il y a moins de 15 minutes, ne pas renvoyer
+                        return Response({
+                            'enfant_dans_zone': False,
+                            'distance': distance_enfant_point,
+                            'message': 'Alerte déjà envoyée récemment.'
+                        }, status=status.HTTP_200_OK)
+                else:
+                    alert = EmergencyAlert.objects.create(
+                            device=device,
+                            alert_type="danger",
+                            comment=text,
+                            latitude=lat_enfant,
+                            longitude=lon_enfant,
+                            adresse=adresse
+                        )
+                    # Envoi des notifications aux membres de la famille et contacts d'urgence
+                    family_members = FamilyMember.objects.filter(device=device)
+                    emergency_contacts = []
+                    for family_member in family_members:
+                        parent = family_member.parent
+                        if parent:
+                            contacts = EmergencyContact.objects.filter(parent=parent)
+                            for contact in contacts:
+                                emergency_contacts.append(contact)
+                            if parent.fcm_token:
+                                token = parent.fcm_token
+                                try:
+                                    send_simple_notification(token, text, "warning_sound")
+                                except Exception as e:
+                                    print(f"Erreur lors de l'envoi de la notification à {parent}: {e}")
+                            AlertNotification.objects.create(alert=alert, type_notification='alerte', parent=parent)
+                    for contact in emergency_contacts:
+                        send_sms(contact.phone_number, text)
+                    
+                    return Response({
+                        'enfant_dans_zone': False,
+                        'distance': distance_enfant_point,
+                        'message': 'Alerte ! L\'enfant est hors de la zone de sécurité. Alertes envoyées.dans le else'
+                    }, status=status.HTTP_200_OK)
+            except Child.DoesNotExist:
+                return Response({
+                    'data': None,
+                    'message': 'Enfant non trouvé',
+                    'success': False,
+                    "code": 400
+                }, status=status.HTTP_404_NOT_FOUND)
+    
+    except PerimetreSecurite.DoesNotExist:
+        return Response({
+            'enfant_dans_zone': False,
+            'message': 'Aucun périmètre de sécurité trouvé pour cet enfant.'
+        }, status=status.HTTP_404_NOT_FOUND)

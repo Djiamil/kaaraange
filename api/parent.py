@@ -874,17 +874,35 @@ class ConnectChildSafetyPerimeter(generics.CreateAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        child = None
+        device = None
+
         try:
             child = Child.objects.get(slug=child_slug)
         except Child.DoesNotExist:
-            return Response(
-                {"data": None, "message": "Le compte enfant n'existe pas", "success": False, "code": 400},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            pass
+
+        try:
+            device = Device.objects.get(slug=child_slug)
+        except Device.DoesNotExist:
+            pass
+
+        if child:
+            child_with_psec = ChildWithPerimetreSecurite.objects.filter(
+                child=child, perimetre_securite=perimetre, is_active=True
+            ).first()
+        elif device:
+            child_with_psec = ChildWithPerimetreSecurite.objects.filter(
+                device=device, perimetre_securite=perimetre, is_active=True
+            ).first()
+        else:
+            return Response({
+                "data": None,
+                "message": "Enfant ou appareil non trouvé",
+                "success": False,
+                "code": 404
+            }, status=status.HTTP_404_NOT_FOUND)
         
-        child_with_psec = ChildWithPerimetreSecurite.objects.filter(
-            child=child, perimetre_securite=perimetre, is_active=True
-        ).first()
 
         if child_with_psec:
             child_with_psec.is_active = False
@@ -903,7 +921,7 @@ class ConnectChildSafetyPerimeter(generics.CreateAPIView):
 
         # Activer ou créer l'association entre l'enfant et le périmètre
         child_with_perimetre, created = ChildWithPerimetreSecurite.objects.update_or_create(
-            child=child, perimetre_securite=perimetre, defaults={"is_active": True}
+            child=child,device=device, perimetre_securite=perimetre, defaults={"is_active": True}
         )
 
         message = "Périmètre de sécurité activé avec succès" if not created else "Périmètre de sécurité affecté avec succès"
@@ -935,8 +953,30 @@ class ParentPerimetreListView(generics.ListAPIView):
 # liste des perimetre de securité pour l'enfzntclass 
 class ChildPerimetreListView(generics.ListAPIView):
     def get(self, request, slug, *args, **kwargs):
-        child = get_object_or_404(Child, slug=slug)  
-        perimetres_associes = ChildWithPerimetreSecurite.objects.filter(child=child)
+        child = None
+        device = None
+
+        try:
+            child = Child.objects.get(slug=slug)
+        except Child.DoesNotExist:
+            pass
+
+        try:
+            device = Device.objects.get(slug=slug)
+        except Device.DoesNotExist:
+            pass
+
+        if child:
+            perimetres_associes = ChildWithPerimetreSecurite.objects.filter(child=child)
+        elif device:
+            perimetres_associes = ChildWithPerimetreSecurite.objects.filter(device=device)
+        else:
+            return Response({
+                "data": None,
+                "message": "Enfant ou appareil non trouvé",
+                "success": False,
+                "code": 404
+            }, status=status.HTTP_404_NOT_FOUND)
 
         # Sérialiser l'enfant une seule fois
         child_serializer = ChildSerializer(child)
