@@ -111,7 +111,6 @@ class BatteryStatusSave(generics.CreateAPIView):
             "success": False,
             "code": 400
         }, status=status.HTTP_400_BAD_REQUEST)
-
 class WellStockFamilyNumberForDevice(generics.CreateAPIView):
     serializer_class = FamilyNumberSerializer
     queryset = FamilyNumber.objects.all()
@@ -192,6 +191,29 @@ class WellStockFamilyNumberForDevice(generics.CreateAPIView):
                 "success": False,
                 "code": 400
             }, status=status.HTTP_400_BAD_REQUEST)
+class bateriestatusList(generics.ListAPIView):
+    serializer_class = SerializerBatteryStatus
+    queryset = BatteryStatus.objects.all()
+    def get(self,slug, request, *args, **kwargs):
+        try:
+            device = Device.objects.get(slug=slug)
+        except Device.DoesNotExist:
+            return Response({
+                "data": None,
+                "message": "Aucun device trouver",
+                "success": False,
+                "code": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+        baterie = BatteryStatus.objects.filter(device=device).last()
+        serializer = SerializerBatteryStatus(baterie)
+        return Response({
+            "data": serializer.data,
+            "message": "Derniere stat de baterie lister avec succées",
+            "success": True,
+            "code": 201
+        }, status=status.HTTP_201_CREATED)
+        
         
         
         
