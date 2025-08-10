@@ -18,6 +18,7 @@ from firebase_admin import credentials, messaging
 import math
 from django.utils import timezone
 from datetime import timedelta
+from itertools import chain
 
 
 
@@ -253,8 +254,6 @@ class ListeUserActifInactif(generics.GenericAPIView):
         }, status=status.HTTP_200_OK)
 
 # Cette views nous permetra de lister tous  les information qui concerne le parent
-from itertools import chain
-
 class ParentDashbord(generics.RetrieveAPIView):
     queryset = Parent.objects.all()
     serializer_class = ParentSerializer
@@ -783,19 +782,45 @@ class DetailDemandeForNotification(generics.RetrieveAPIView):
 
 # Cette views vas juste nous permetre de retourner les enfant d'un parent
 class GetAllChildForthisParent(generics.ListAPIView):
-    serializer_class = FamilyMemberSerializer()
+    serializer_class = ChildSerializer  # On va switch dynamiquement
     queryset = FamilyMember.objects.all()
-    def get(self, request, slug, *args,**kwargs):
+
+    def get(self, request, slug, *args, **kwargs):
         try:
             family_members = FamilyMember.objects.filter(parent__slug=slug)
         except FamilyMember.DoesNotExist:
-            return Response({"data" : None, "message" : "Ce parent n'est lié à aucun enfant", "access" : True, "code" : 200}, status=status.HTTP_200_OK)
+            return Response({
+                "data": None,
+                "message": "Ce parent n'est lié à aucun enfant",
+                "access": True,
+                "code": 200
+            }, status=status.HTTP_200_OK)
+
         if family_members:
-            children = [family_member.child for family_member in family_members]
-            serializer = ChildSerializer(children, many=True)
-            return Response({"data" : serializer.data , "message" : "Liste des enfants", "access" : True, "code" : 200}, status=status.HTTP_200_OK)
-        else:
-            return Response({"data" : None, "message" : "Ce parent n'est lié à aucun enfant", "access" : True, "code" : 200}, status=status.HTTP_200_OK)
+            # Récupérer enfants et devices du parent
+            children = [fm.child for fm in family_members if fm.child]
+            devices = [fm.device for fm in family_members if fm.device]
+
+            # Sérialiser séparément
+            serialized_children = ChildSerializer(children, many=True).data
+            serialized_devices = DeviceSerializer(devices, many=True).data
+
+            # Fusionner dans une seule liste
+            combined_list = list(chain(serialized_children, serialized_devices))
+
+            return Response({
+                "data": combined_list,
+                "message": "Liste des enfants",
+                "access": True,
+                "code": 200
+            }, status=status.HTTP_200_OK)
+
+        return Response({
+            "data": None,
+            "message": "Ce parent n'est lié à aucun enfant",
+            "access": True,
+            "code": 200
+        }, status=status.HTTP_200_OK)
 
         
 # Le nouveau process pour creer un perimetre de securité par le parent et la liesons d'un perimetre de securité a un enfant
