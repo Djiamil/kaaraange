@@ -274,6 +274,7 @@ class EmergencyAlertSerializerforAlert(serializers.ModelSerializer):
     
 class AlertNotificationSerializerAlert(serializers.ModelSerializer):
     alert = EmergencyAlertSerializerforAlert()  # Serialise la relation vers EmergencyAlert
+    parent = ParentSerializer()
     
     class Meta:
         model = AlertNotification
