@@ -372,7 +372,7 @@ class AddLocalization(generics.RetrieveAPIView):
                 if perimetre_securite :
                     resultat = verifier_enfant_dans_zone(enfant_slug, lat_enfant, lon_enfant,adresse)
             elif device:
-                perimetre_securite = ChildWithPerimetreSecurite.objects.filter(device__slug=enfant_slug,is_active=True).first()
+                perimetre_securite = ChildWithPerimetreSecurite.objects.filter(device__slug=device.slug,is_active=True).first()
                 if perimetre_securite :
                     resultat = verifier_enfant_dans_zone_device(device.slug, lat_enfant, lon_enfant,adresse)
             return Response({
