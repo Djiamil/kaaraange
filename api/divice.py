@@ -82,6 +82,7 @@ class BatteryStatusSave(generics.CreateAPIView):
 
     def post(self, request, *args, **kwargs):
         device_identity = request.data.get("device")
+        battery = request.data.get("battery")
         try:
             device = Device.objects.get(imei=device_identity)
         except Device.DoesNotExist:
@@ -98,6 +99,8 @@ class BatteryStatusSave(generics.CreateAPIView):
         serializer = SerializerBatteryStatus(data=data)
         if serializer.is_valid():
             serializer.save()
+            device.battery_level = battery
+            device.save()
             return Response({
                 "data": serializer.data,
                 "message": "Status de la batterie bien mis à jour",
