@@ -481,13 +481,13 @@ class DailyTrajectoryView(generics.ListAPIView):
         # Filtrer les emplacements de l'enfant pour la période spécifiée
         if child:
             locations = Location.objects.filter(
-                enfant=child,
+                enfant=child,location_type="gps",
                 datetime_localisation__gte=start_date,
                 datetime_localisation__lt=today
             ).order_by('-datetime_localisation')
         elif device:
             locations = Location.objects.filter(
-                device=device,
+                device=device,location_type="gps",
                 datetime_localisation__gte=start_date,
                 datetime_localisation__lt=today
             ).order_by('-datetime_localisation')
