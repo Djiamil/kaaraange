@@ -255,3 +255,26 @@ class FamilyNumberSerializer(serializers.ModelSerializer):
         validated_data["name"] = names[existing_numbers]
 
         return super().create(validated_data)
+
+
+
+class EmergencyAlertSerializerforAlert(serializers.ModelSerializer):
+    child = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = EmergencyAlert
+        fields = '__all__'  # ou liste explicite
+
+    def get_child(self, obj):
+        if obj.child is not None:
+            return ChildSerializerDetail(obj.child).data
+        elif obj.device is not None:
+            return DeviceSerializer(obj.device).data
+        return None
+    
+class AlertNotificationSerializerAlert(serializers.ModelSerializer):
+    alert = EmergencyAlertSerializerforAlert()  # Serialise la relation vers EmergencyAlert
+    
+    class Meta:
+        model = AlertNotification
+        fields = '__all__'

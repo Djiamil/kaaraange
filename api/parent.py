@@ -412,7 +412,7 @@ class SendAlertAllEmergenctContactForParentToChild(generics.RetrieveAPIView):
 # Views pour lister les notification d'alerte recu par le parent
 
 class ParentNotificationListe(generics.ListAPIView):
-    serializer_class = AlertNotificationSerializer
+    serializer_class = AlertNotificationSerializerAlert
 
     def get_queryset(self):
         slug = self.kwargs.get('slug')
