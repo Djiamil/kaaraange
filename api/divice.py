@@ -452,11 +452,11 @@ class ReleaseParentToDevice(generics.CreateAPIView):
             }, status=status.HTTP_404_NOT_FOUND)
 
         # Vérifier si déjà lié
-        famille = FamilyMember.objects.filter(device=device, parent=parent).first()
+        famille = FamilyMember.objects.filter(device=device).first()
         if famille:
             return Response({
                 "data": None,
-                "message": "Ce parent est déjà lié à ce device.",
+                "message": "Ce tag est déjà attribué à un parent.",
                 "success": False,
                 "code": 409
             }, status=status.HTTP_409_CONFLICT)
