@@ -401,6 +401,7 @@ class ReleaseParentToDevice(generics.CreateAPIView):
         prenom = request.data.get("prenom")
         slug_parent = request.data.get("slug_parent")
         relation = request.data.get("relation")
+        phone_number = request.data.get("phone_number")
 
         if not emei or not slug_parent:
             return Response({
@@ -448,6 +449,7 @@ class ReleaseParentToDevice(generics.CreateAPIView):
         # Mettre à jour les infos du device
         device.nom = nom
         device.prenom = prenom
+        device.phone_number = phone_number
         device.save()
 
         # Enregistrer les numéros associés
