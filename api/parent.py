@@ -341,7 +341,7 @@ class SendAlertAllEmergenctContactForParentToChild(generics.RetrieveAPIView):
             device = Device.objects.filter(imei=slug).first()
             if device :
                 location_type = request.data.get('location_type', '')
-                text = f"Vous avez reçu une alerte de votre enfant {device.nom}."
+                text = f"Vous avez reçu une alerte de votre enfant {device.prenom} {device.nom}."
                 alert = EmergencyAlert.objects.create(
                     device=device,
                     alert_type= "Prévenu par l'enfant",
@@ -362,7 +362,7 @@ class SendAlertAllEmergenctContactForParentToChild(generics.RetrieveAPIView):
                             emergency_contacts.append(contact)
                     if parent.fcm_token :
                         token =parent.fcm_token
-                        text = f"Vous avez reçu une alerte de votre enfant {device.prenom}."
+                        text = f"Vous avez reçu une alerte de votre enfant {device.prenom} {device.nom}."
                         try :
                             send_simple_notification(token,text,"warning_sound")
                         except Exception as e:  # Capturer toutes les exceptions
@@ -377,7 +377,7 @@ class SendAlertAllEmergenctContactForParentToChild(generics.RetrieveAPIView):
                     child = Child.objects.filter(slug=slug).first()
                     if not child:
                         return Response({'data': None, 'message': 'Device or Child not found', 'success': True, "code": 404}, status=status.HTTP_404_NOT_FOUND)
-                    text = f"Vous avez reçu une alerte de votre enfant {child.prenom}."
+                    text = f"Vous avez reçu une alerte de votre enfant {child.prenom} {child.nom}."
                     alert = EmergencyAlert.objects.create(
                         child=child,
                         alert_type= "Prévenu par l'enfant",
@@ -396,7 +396,7 @@ class SendAlertAllEmergenctContactForParentToChild(generics.RetrieveAPIView):
                                 emergency_contacts.append(contact)
                         if parent.fcm_token :
                             token =parent.fcm_token
-                            text = f"Vous avez reçu une alerte de votre enfant {child.prenom}."
+                            text = f"Vous avez reçu une alerte de votre enfant {child.prenom} {child.nom}."
                             try :
                                 send_simple_notification(token,text,"warning_sound")
                             except Exception as e:  # Capturer toutes les exceptions
