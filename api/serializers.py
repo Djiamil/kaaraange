@@ -269,7 +269,7 @@ class EmergencyAlertSerializerforAlert(serializers.ModelSerializer):
         if obj.child is not None:
             return ChildSerializerDetail(obj.child).data
         elif obj.device is not None:
-            return DeviceSerializer(obj.device).data
+            return DeviceSerializerDetail(obj.device).data
         return None
     
 class AlertNotificationSerializerAlert(serializers.ModelSerializer):
