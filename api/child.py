@@ -575,159 +575,172 @@ class parentResisterChild(generics.RetrieveAPIView):
         return Response({'data': ChildSerializer(child).data, 'message': "Veillez renseignez les information de l'enfant", 'success': True, 'code': 200}, status=status.HTTP_200_OK)
 
 # La nouvelle methode pour valider la creation du compte de lenfant par le parent
-class parentValidateChildDataAndLink(generics.RetrieveAPIView):
+class ParentValidateChildDataAndLink(generics.RetrieveAPIView):
     serializer_class = ChildSerializer
     queryset = Child.objects.all()
     lookup_field = 'slug'
+
     def put(self, request, *args, **kwargs):
         slug = self.kwargs.get('slug')
         slug_parent = request.data.get('slug_parent', '')
         relation = request.data.get('relation', '')
+
         try:
             child = Child.objects.get(slug=slug)
         except Child.DoesNotExist:
-            return Response({'data' : None, 'message' : "Aucun enfant trouver", 'success' :False , 'code' : 400},status=status.HTTP_400_BAD_REQUEST)
-        
-        # Je prend cette partie pour voir quant creer lenfant et l'associer a un parent pour la premier fois ou envoyer une damande au premier parent
-        if child.is_active:
-            # envoie de la demande pour que le premier parent l'active
-            try:
-                # verifier ici si le arent et l'enfant non pas deja une relation avant de recreer la demande
-                check_child_parent_familyMembership = FamilyMember.objects.filter(parent__slug=slug_parent, child__slug=slug).exists()
-            except FamilyMember.DoesNotExist:
-                return Response({"data" : None, "message": "Vous avez déjà une relation de parenté avec cet enfant.", "access": False, "code": "400"}, status=status.HTTP_400_BAD_REQUEST)
-            if check_child_parent_familyMembership:
-                return Response(
-                    {"data": None, "message": "Vous avez déjà une relation de parenté avec cet enfant.", "access": False, "code": "400"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            try:
-                parent = Parent.objects.get(slug=slug_parent)
-            except Parent.DoesNotExist:
-                return Response({'data' : None, 'message' : "Aucun parent trouver pour la creation du compte de l'enfant", 'success' : False}, status=status.HTTP_400_BAD_REQUEST)
-            first_family_member = FamilyMember.objects.filter(child=child).order_by('created_at').first()
-            # creation de la notification qui est lier u demande pour la recuperation du demande
-            comment = f"Un nouveau parent souhaite ajouter {child.prenom} {child.nom}."
-            notification = AlertNotification.objects.create(type_notification = "demande",parent =parent, comment = comment)
-            # Creation de la demande qui sera envoyer et grder pour la validation ou le rejet du parent 
-            demande = Demande.objects.create(enfant = child,parent = parent,parent_recepteur = first_family_member.parent,relationship =relation,notification =notification)
-            if first_family_member.parent.fcm_token :
-                token =first_family_member.parent.fcm_token
-                text = f"Bonjour {parent.prenom} {parent.nom}  a exprimé le souhait de devenir co-parent pour votre enfant {child.prenom} {child.nom} Votre décision est essentielle pour renforcer le cercle de protection de votre enfant."
-                try :
-                    send_simple_notification(token,text)
-                except Exception as e:  # Capturer toutes les exceptions
-                    print(f"Erreur lors de l'envoi de la notification à {parent}: {e}")
-            # Envoi du SMS si le numéro de téléphone existe
-            if first_family_member.parent.phone_number:
-                phone_number = first_family_member.parent.phone_number
-                text = f"Bonjour {parent.prenom} {parent.nom}  a exprimé le souhait de devenir co-parent pour votre enfant {child.prenom} {child.nom} Votre décision est essentielle pour renforcer le cercle de protection de votre enfant."
-                send_sms(phone_number, text)
             return Response({
-                "data" : ParentSerializer(first_family_member.parent).data,
-                "message": f"Merci d'attendre l'approbation du parent {first_family_member.parent.prenom} {first_family_member.parent.nom}",
-                "success" : True,
-                "code" : 200
-            },status=status.HTTP_200_OK)
+                'data': None, 
+                'message': "Aucun enfant trouvé", 
+                'success': False, 
+                'code': 400
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if child.is_active:
+            return self.handle_new_parent_request(child, slug_parent, relation, slug, request)
         else:
-            # creation de la compte de l'enfant pour la premier fois pour le lier a son premier parent
-            serializer = ChildSerializer(child, data=request.data, partial=True)
-            try:
-                user_teste_existence_t = User.objects.filter(phone_number=request.data.get('phone_number')).first()
-            except User.DoesNotExist:
-                pass
-            if user_teste_existence_t:
-                return Response({
-                    "data" : None,
-                    "message" : "Un utilisateur avec ce numero de telephone existe deja",
-                    "success" : False,
-                    "code" : 400
-                },status=status.HTTP_400_BAD_REQUEST)
-            if serializer.is_valid():
-                try:
-                    user_teste_existence = User.objects.filter(email=request.data.get('email')).first()
-                except User.DoesNotExist:
-                    pass
-                if user_teste_existence:
-                    if user_teste_existence.email:
-                        return Response({
-                            "data" : None,
-                            "message" : "Un utilisateur avec cette email existe deja",
-                            "success" : False,
-                            "code" : 404
-                        },status=status.HTTP_400_BAD_REQUEST)
-                try:
-                    user_teste_existence_t = User.objects.filter(phone_number=request.data.get('telephone')).first()
-                except User.DoesNotExist:
-                    pass
-                if user_teste_existence_t.phone_number is not None :
-                    if user_teste_existence_t :
-                        return Response({
-                            "data" : None,
-                            "message" : "Un utilisateur avec ce numero de telephone existe deja",
-                            "success" : False,
-                            "code" : 404
-                        },status=status.HTTP_400_BAD_REQUEST)
-                try:
-                    parent = Parent.objects.get(slug=slug_parent)
-                except Parent.DoesNotExist:
-                    return Response({'data' : None, 'message' : "Aucun parent trouver pour la creation du compte de l'enfant", 'success' : False}, status=status.HTTP_400_BAD_REQUEST)
-                serializer.save()
-                child.is_active = True
-                child.save()
-                # mettre a jour le mot de passe de l'enfant nouvellement ajouter
-                password = request.data.get('password', '')
-                if password:
-                    child.password = make_password(password)
-                    child.save()
-                # Lier directement le parent a l'enfant 
-                family_member, created = FamilyMember.objects.get_or_create(
-                            parent=parent,
-                            child=child,
-                            relation=relation
-                        )
-                if created:
-                    # Ajouter le parent dans les contact d'urgence
-                    parentExists = EmergencyContact.objects.filter(parent=parent).first()
-                    if parentExists:
-                        contact_parent = parentExists
-                    else:
-                        # Creer le parent dans dans les emergency contact c'est la premiere fois qu'il creer un enfant
-                        emergencyContact = EmergencyContact.objects.create(
-                            parent = parent,
-                            phone_number = parent.phone_number,
-                            relationship = relation,
-                            name = parent.prenom + ' ' + parent.nom
-                        )
-                # Ajouter un alergie pour l'enfatnsi existe si allergy_type est dans le payload
-                allergy_type = request.data.get('allergy_type', '')
-                if allergy_type:
-                    alergie = Allergy.objects.create(
-                        allergy_type = allergy_type,
-                        child = child
-                    )
-                # Ajouter un probleme medicaux si issue_type est dans le payload
-                issue_type = request.data.get('issue_type', '')
-                if issue_type:
-                    medicalIssue = MedicalIssue.objects.create(
-                        issue_type = issue_type,
-                        child = child
-                    )
-                return Response({
-                    "data": {
-                        "child": serializer.data
-                    },
-                    "message": "Enfant incris avec sucess",
-                    "success": True,
-                    "code": 200
-                }, status=status.HTTP_200_OK)
-            else:
+            return self.handle_first_link(child, slug_parent, relation, request)
+
+    def handle_first_link(self, child, slug_parent, relation, request):
+        # """Création du compte enfant pour la première fois et lien avec le parent principal."""
+        serializer = ChildSerializer(child, data=request.data, partial=True)
+        # Vérification utilisateur existant
+        phone_number = request.data.get('phone_number')
+        email = request.data.get('email')
+        required_fields = ['prenom', 'nom', 'date_de_naissance','password']
+        for field in required_fields:
+            if not request.data.get(field):
                 return Response({
                     "data": None,
-                    "message": "Les données fournies ne sont pas valides",
+                    "message": f"Le champ {field} est obligatoire",
                     "success": False,
                     "code": 400
                 }, status=status.HTTP_400_BAD_REQUEST)
+        existing_user_phone = User.objects.filter(phone_number=phone_number).first()
+        if email:
+            existing_user_email = User.objects.filter(email=email).first()
+            if existing_user_email:
+                return Response({
+                    "data": None,
+                    "message": "Un utilisateur avec cet email existe déjà",
+                    "success": False,
+                    "code": 400
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        if existing_user_phone:
+            return Response({
+                "data": None,
+                "message": "Un utilisateur avec ce numéro de téléphone existe déjà",
+                "success": False,
+                "code": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if serializer.is_valid():
+            try:
+                parent = Parent.objects.get(slug=slug_parent)
+            except Parent.DoesNotExist:
+                return Response({
+                    'data': None, 
+                    'message': "Aucun parent trouvé pour la création du compte de l'enfant", 
+                    'success': False
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Sauvegarde de l'enfant et mot de passe
+            serializer.save()
+            child.is_active = True
+            password = request.data.get('password', '')
+            if password:
+                child.password = make_password(password)
+            child.save()
+
+            # Lier le parent à l'enfant
+            family_member, created = FamilyMember.objects.get_or_create(
+                parent=parent,
+                child=child,
+                relation=relation
+            )
+            # Ajouter le parent aux contacts d'urgence
+            if created and not EmergencyContact.objects.filter(parent=parent).exists():
+                EmergencyContact.objects.create(
+                    parent=parent,
+                    phone_number=parent.phone_number,
+                    relationship=relation,
+                    name=f"{parent.prenom} {parent.nom}"
+                )
+
+            # Ajouter allergies et problèmes médicaux
+            allergy_type = request.data.get('allergy_type')
+            if allergy_type:
+                Allergy.objects.create(allergy_type=allergy_type, child=child)
+
+            issue_type = request.data.get('issue_type')
+            if issue_type:
+                MedicalIssue.objects.create(issue_type=issue_type, child=child)
+
+            return Response({
+                "data": {"child": serializer.data},
+                "message": "Enfant inscrit avec succès",
+                "success": True,
+                "code": 200
+            }, status=status.HTTP_200_OK)
+
+        return Response({
+            "data": None,
+            "message": serializer.errors,
+            "success": False,
+            "code": 400
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    def handle_new_parent_request(self, child, slug_parent, relation, slug, request):
+        """Envoyer une demande de co-parenting au parent principal."""
+        exists = FamilyMember.objects.filter(parent__slug=slug_parent, child__slug=slug).exists()
+        if exists:
+            return Response({
+                "data": None,
+                "message": "Vous avez déjà une relation de parenté avec cet enfant.",
+                "access": False,
+                "code": "400"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            parent = Parent.objects.get(slug=slug_parent)
+        except Parent.DoesNotExist:
+            return Response({
+                'data': None,
+                'message': "Aucun parent trouvé pour la création du compte de l'enfant",
+                'success': False
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        first_family_member = FamilyMember.objects.filter(child=child).order_by('created_at').first()
+
+        comment = f"Un nouveau parent souhaite ajouter {child.prenom} {child.nom}."
+        notification = AlertNotification.objects.create(type_notification="demande", parent=parent, comment=comment)
+        Demande.objects.create(
+            enfant=child,
+            parent=parent,
+            parent_recepteur=first_family_member.parent,
+            relationship=relation,
+            notification=notification
+        )
+
+        # Message unique pour notification et SMS
+        message_text = f"Bonjour {parent.prenom} {parent.nom} a exprimé le souhait de devenir co-parent pour votre enfant {child.prenom} {child.nom}. Votre décision est essentielle pour renforcer le cercle de protection de votre enfant."
+
+        if first_family_member.parent.fcm_token:
+            try:
+                send_simple_notification(first_family_member.parent.fcm_token, message_text)
+            except Exception as e:
+                print(f"Erreur lors de l'envoi de la notification : {e}")
+
+        if first_family_member.parent.phone_number:
+            send_sms(first_family_member.parent.phone_number, message_text)
+
+        return Response({
+            "data": ParentSerializer(first_family_member.parent).data,
+            "message": f"Merci d'attendre l'approbation du parent {first_family_member.parent.prenom} {first_family_member.parent.nom}",
+            "success": True,
+            "code": 200
+        }, status=status.HTTP_200_OK)
+
 
 # Va retourner les autres possible relation que l'enfant peux avoir apres deja ses quelque relation sur familyMember
 class ChildParentRelationship(generics.CreateAPIView):

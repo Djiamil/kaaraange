@@ -65,7 +65,7 @@ urlpatterns = [
     path('child_update/<slug:slug>/', child.UpdateChild.as_view(), name='update_child'), 
     path('add_allergy/', child.ChildAlergyApiViews.as_view(), name='child_add_allergy'),
     path('parent_register_child/', child.parentResisterChild.as_view(), name='parent_register_child'),
-    path('parent_validate_child_subscriber/<slug:slug>/', child.parentValidateChildDataAndLink.as_view(), name='parent_validate_child_subscriber'),
+    path('parent_validate_child_subscriber/<slug:slug>/', child.ParentValidateChildDataAndLink.as_view(), name='parent_validate_child_subscriber'),
     path('child_parent_relationship/<slug:slug>/', child.ChildParentRelationship.as_view(), name='child_parent_relationship'),
     path('parent_list/<slug:slug>/', child.GetAllParentForthiChild.as_view(), name='parent_list'),
     # fin des routes qui conserne l'enfant  

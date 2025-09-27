@@ -19,6 +19,8 @@ import math
 from django.utils import timezone
 from datetime import timedelta
 from itertools import chain
+from rest_framework.views import APIView
+
 
 
 
@@ -712,27 +714,31 @@ class AnabledOrDisabledPerimetreDesecurite(generics.CreateAPIView):
         
 
 # Views pour que le parent puis accepter ou rejeter une demande de co-parent
-class ParentAcceptedOrDismissRequest(generics.ListCreateAPIView):
+class ParentAcceptedOrDismissRequest(APIView):
     queryset = Demande.objects.all()
     serializer_class = DemandeSerializer
     def put(self, request, *args, **kwargs):
+        # print(demande.relationship)
         slug_notification = request.data.get('slug_notification','')
         status_notification = request.data.get('status_notification','')
         # Verifier  si la notification est lier a un demande et recupperer la demande
         try:
-            notification = AlertNotification.objects.filter(slug=slug_notification).last()
+            notification = AlertNotification.objects.filter(slug=slug_notification,status="en_cours").last()
             demande =Demande.objects.get(notification=notification)
         except Demande.DoesNotExist:
             return Response({"data": None, "message": "Aucune demande trouver pour ce notification", "success":False}, status=status.HTTP_404_NOT_FOUND)
         # tester si le premier parent accepte la demande de lier l'enfant et le co-parent on envoie des notifications au co-parent et creer le family member
+
         if status_notification == "Accepté":
 
             family_member = FamilyMember.objects.create(relation=demande.relationship,parent=demande.parent,child=demande.enfant)
             notification.status = "Accepté"
             notification.save()
+            notification.refresh_from_db()
             demande.status = "Accepté"
             demande.save()
-            back_notification = AlertNotification(type_notification="demande", parent=demande.parent,status="Accepté")
+            demande.refresh_from_db()
+            back_notification = AlertNotification(type_notification="demande", parent=demande.parent,status="en_cours")
             if demande.parent.fcm_token :
                 token =demande.parent.fcm_token
                 text = f"Bonne nouvelle ! Votre demande pour devenir co-parent de l'enfant  {demande.enfant.prenom} {demande.enfant.nom} a été acceptée par {demande.parent.prenom} {demande.parent.nom}.Ensemble, vous construisez un environnement plus sûr pour cet enfant."
@@ -743,15 +749,17 @@ class ParentAcceptedOrDismissRequest(generics.ListCreateAPIView):
             if demande.parent.phone_number:
                 phone_number = demande.parent.phone_number
                 text = f"Bonne nouvelle ! Votre demande pour devenir co-parent de l'enfant  {demande.enfant.prenom} {demande.enfant.nom} a été acceptée par {demande.parent.prenom} {demande.parent.nom}.Ensemble, vous construisez un environnement plus sûr pour cet enfant."
-                send_sms(phone_number, text)
+                # send_sms(phone_number, text)
             serializer = DemandeSerializer(demande)
             return Response({"data": serializer.data, "message" : "Demande accepté avec succées", "status" : True , "code" : 200},status=status.HTTP_200_OK)
         else:
             back_notification = AlertNotification(type_notification="demande", parent=demande.parent,status="Refusé")
             notification.status = "Refusé"
             notification.save()
+            notification.refresh_from_db()
             demande.status = "Refusé"
             demande.save()
+            demande.refresh_from_db()
             if demande.parent.fcm_token :
                 token =demande.parent.fcm_token
                 text = f"Votre demande pour devenir co-parent de l'enfant    {demande.enfant.prenom} {demande.enfant.nom} a été refusée par {demande.parent.prenom} {demande.parent.nom}.Nous vous encourageons à communiquer avec le parent principal pour en discuter."
