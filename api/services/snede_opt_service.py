@@ -359,3 +359,32 @@ def verifier_enfant_dans_zone_device(slug, lat_enfant, lon_enfant,adresse):
             'enfant_dans_zone': False,
             'message': 'Aucun périmètre de sécurité trouvé pour cet enfant.'
         }, status=status.HTTP_404_NOT_FOUND)
+        
+
+# Fonction pour verifier l'existance des utilisateurs
+def check_user_exists(email=None, phone_number=None):
+    # Vérifie seulement si email est non vide et non None
+    print(email)
+    print('lemail est en haut')
+    if email:
+        existing_user = User.objects.filter(email=email).first()
+        if existing_user:
+            return {
+                "data": None,
+                "message": "Un utilisateur avec cet email existe déjà",
+                "success": False,
+                "code": 400
+            }
+
+    # Vérifie seulement si phone_number est non vide et non None
+    if phone_number:
+        existing_user = User.objects.filter(phone_number=phone_number).first()
+        if existing_user:
+            return {
+                "data": None,
+                "message": "Un utilisateur avec ce numéro de téléphone existe déjà",
+                "success": False,
+                "code": 400
+            }
+
+    return None
