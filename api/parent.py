@@ -749,7 +749,7 @@ class ParentAcceptedOrDismissRequest(APIView):
             if demande.parent.phone_number:
                 phone_number = demande.parent.phone_number
                 text = f"Bonne nouvelle ! Votre demande pour devenir co-parent de l'enfant  {demande.enfant.prenom} {demande.enfant.nom} a été acceptée par {demande.parent.prenom} {demande.parent.nom}.Ensemble, vous construisez un environnement plus sûr pour cet enfant."
-                # send_sms(phone_number, text)
+                send_sms(phone_number, text)
             serializer = DemandeSerializer(demande)
             return Response({"data": serializer.data, "message" : "Demande accepté avec succées", "status" : True , "code" : 200},status=status.HTTP_200_OK)
         else:
