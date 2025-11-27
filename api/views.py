@@ -448,3 +448,19 @@ class DeleteUserView(generics.DestroyAPIView):
             status=status.HTTP_200_OK,
         )
 
+class SearchUserForPhone(APIView):
+
+    def post(self, request, *args, **kwargs):
+        phone_number = request.data.get("phone")
+        if not phone_number:
+            return Response({"message": "Le champ 'phone' est requis", "success": False, "code": 400},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        parents = Parent.objects.filter(phone_number=phone_number)
+        if not parents.exists():
+            return Response({"message": "Aucun utilisateur avec ce téléphone", "success": False, "code": 404},
+                            status=status.HTTP_404_NOT_FOUND)
+
+        serializer = ParentSerializer(parents, many=True)
+        return Response({"data": serializer.data, "message": "Utilisateur(s) récupéré(s) avec succès",
+                         "code": 200, "success": True}, status=status.HTTP_200_OK)

@@ -594,7 +594,8 @@ class ParentValidateChildDataAndLink(generics.RetrieveAPIView):
                 'success': False, 
                 'code': 400
             }, status=status.HTTP_400_BAD_REQUEST)
-
+        print("child is active")
+        print(child.is_active)
         if child.is_active:
             return self.handle_new_parent_request(child, slug_parent, relation, slug, request)
         else:

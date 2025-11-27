@@ -83,4 +83,8 @@ urlpatterns = [
     path('geolocaliser_par_wifi_mozilla/', divice.GeolocaliserParWifiMozilla.as_view(), name='geolocaliser_par_wifi_mozilla'),
     path('device_parent_to_family_member/', divice.ReleaseParentToDevice.as_view(), name='device_parent_to_family_member'),
     # Fin des url pour les divice 
+    
+    # Debut url utile
+    path('search_parent/',views.SearchUserForPhone.as_view(), name='search-parent'),
+    # Fin url utile
 ]
