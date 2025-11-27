@@ -333,8 +333,8 @@ class EmergencyAlert(models.Model):
     comment = models.TextField()
     alert_datetime = models.DateTimeField(auto_now_add=True)
     state = models.CharField(max_length=20, choices=ALERT_STATE_CHOICES, default='en_attente')
-    latitude = models.CharField(max_length=50, blank=True, null=True)  # ou une longueur appropriée pour les coordonnées
-    longitude = models.CharField(max_length=50, blank=True, null=True)  # ou une longueur appropriée pour les coordonnées
+    latitude = models.CharField(max_length=50, blank=True, null=True)
+    longitude = models.CharField(max_length=50, blank=True, null=True)
     adresse = models.CharField(max_length=255, blank=True, null=True)
     datetime_localisation = models.DateTimeField(default=timezone.now)
     location_type = models.CharField(
@@ -367,7 +367,7 @@ class AlertNotification(models.Model):
     notified_at = models.DateTimeField(auto_now_add=True)
     type_notification = models.CharField(max_length=10, choices=NOTIFICATION_TYPE, default='alerte')
     parent = models.ForeignKey(Parent, on_delete=models.CASCADE,null=True, blank=True, related_name='notification_parents')
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='en_cours')  # Nouveau champ
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='en_cours')
     comment = models.TextField(max_length=10,blank=True,null=True)
 
 
