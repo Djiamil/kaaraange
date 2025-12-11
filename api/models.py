@@ -454,6 +454,7 @@ class Demande(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='en_cours')  # Nouveau champ
+    device = models.ForeignKey(Device, on_delete=models.CASCADE, null=True, blank=True, related_name="demande_device")
 
     def __str__(self):
         return f"Demande de {self.relationship} pour {self.enfant} au parent {self.parent}"
