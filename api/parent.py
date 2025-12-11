@@ -730,8 +730,10 @@ class ParentAcceptedOrDismissRequest(APIView):
         # tester si le premier parent accepte la demande de lier l'enfant et le co-parent on envoie des notifications au co-parent et creer le family member
 
         if status_notification == "Accepté":
-
-            family_member = FamilyMember.objects.create(relation=demande.relationship,parent=demande.parent,child=demande.enfant)
+            if demande.enfant:
+                family_member = FamilyMember.objects.create(relation=demande.relationship,parent=demande.parent,child=demande.enfant)
+            elif demande.device:
+                family_member = FamilyMember.objects.create(relation=demande.relationship,parent=demande.parent,device=demande.device)
             notification.status = "Accepté"
             notification.save()
             notification.refresh_from_db()
@@ -741,14 +743,20 @@ class ParentAcceptedOrDismissRequest(APIView):
             back_notification = AlertNotification(type_notification="demande", parent=demande.parent,status="en_cours")
             if demande.parent.fcm_token :
                 token =demande.parent.fcm_token
-                text = f"Bonne nouvelle ! Votre demande pour devenir co-parent de l'enfant  {demande.enfant.prenom} {demande.enfant.nom} a été acceptée par {demande.parent.prenom} {demande.parent.nom}.Ensemble, vous construisez un environnement plus sûr pour cet enfant."
+                if demande.enfant :
+                    text = f"Bonne nouvelle ! Votre demande pour devenir co-parent de l'enfant  {demande.enfant.prenom} {demande.enfant.nom} a été acceptée par {demande.parent.prenom} {demande.parent.nom}.Ensemble, vous construisez un environnement plus sûr pour cet enfant."
+                elif demande.device :
+                    text = f"Bonne nouvelle ! Votre demande pour devenir co-parent de l'enfant  {demande.device.prenom} {demande.device.nom} a été acceptée par {demande.parent.prenom} {demande.parent.nom}.Ensemble, vous construisez un environnement plus sûr pour cet enfant."
                 try :
                     send_simple_notification(token,text)
                 except Exception as e:  # Capturer toutes les exceptions
                     print(f"Erreur lors de l'envoi de la notification à {demande}: {e}")
             if demande.parent.phone_number:
                 phone_number = demande.parent.phone_number
-                text = f"Bonne nouvelle ! Votre demande pour devenir co-parent de l'enfant  {demande.enfant.prenom} {demande.enfant.nom} a été acceptée par {demande.parent.prenom} {demande.parent.nom}.Ensemble, vous construisez un environnement plus sûr pour cet enfant."
+                if demande.enfant :
+                    text = f"Bonne nouvelle ! Votre demande pour devenir co-parent de l'enfant  {demande.enfant.prenom} {demande.enfant.nom} a été acceptée par {demande.parent.prenom} {demande.parent.nom}.Ensemble, vous construisez un environnement plus sûr pour cet enfant."
+                elif demande.device :   
+                    text = f"Bonne nouvelle ! Votre demande pour devenir co-parent de l'enfant  {demande.device.prenom} {demande.device.nom} a été acceptée par {demande.parent.prenom} {demande.parent.nom}.Ensemble, vous construisez un environnement plus sûr pour cet enfant."
                 send_sms(phone_number, text)
             serializer = DemandeSerializer(demande)
             return Response({"data": serializer.data, "message" : "Demande accepté avec succées", "status" : True , "code" : 200},status=status.HTTP_200_OK)
@@ -762,14 +770,20 @@ class ParentAcceptedOrDismissRequest(APIView):
             demande.refresh_from_db()
             if demande.parent.fcm_token :
                 token =demande.parent.fcm_token
-                text = f"Votre demande pour devenir co-parent de l'enfant    {demande.enfant.prenom} {demande.enfant.nom} a été refusée par {demande.parent.prenom} {demande.parent.nom}.Nous vous encourageons à communiquer avec le parent principal pour en discuter."
+                if demande.enfant :
+                    text = f"Votre demande pour devenir co-parent de l'enfant    {demande.enfant.prenom} {demande.enfant.nom} a été refusée par {demande.parent.prenom} {demande.parent.nom}.Nous vous encourageons à communiquer avec le parent principal pour en discuter."
+                elif demande.device :   
+                    text = f"Votre demande pour devenir co-parent de l'enfant    {demande.device.prenom} {demande.device.nom} a été refusée par {demande.parent.prenom} {demande.parent.nom}.Nous vous encourageons à communiquer avec le parent principal pour en discuter."
                 try :
                     send_simple_notification(token,text)
                 except Exception as e:  # Capturer toutes les exceptions
                     print(f"Erreur lors de l'envoi de la notification à {demande}: {e}")
             if demande.parent.phone_number:
                 phone_number = demande.parent.phone_number
-                text = f"Votre demande pour devenir co-parent de l'enfant    {demande.enfant.prenom} {demande.enfant.nom} a été refusée par {demande.parent.prenom} {demande.parent.nom}.Nous vous encourageons à communiquer avec le parent principal pour en discuter."
+                if demande.enfant :
+                    text = f"Votre demande pour devenir co-parent de l'enfant    {demande.enfant.prenom} {demande.enfant.nom} a été refusée par {demande.parent.prenom} {demande.parent.nom}.Nous vous encourageons à communiquer avec le parent principal pour en discuter."
+                elif demande.device :   
+                    text = f"Votre demande pour devenir co-parent de l'enfant    {demande.device.prenom} {demande.device.nom} a été refusée par {demande.parent.prenom} {demande.parent.nom}.Nous vous encourageons à communiquer avec le parent principal pour en discuter."
                 send_sms(phone_number, text)
             serializer = DemandeSerializer(demande)
             return Response({"data" : serializer.data, "message" : "Demande rejété avec succées", "status" : True, "code" : 200}, status=status.HTTP_200_OK)

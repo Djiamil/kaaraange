@@ -58,7 +58,7 @@ class AddDevice(generics.CreateAPIView):
 
         if serializer.is_valid():
             serializer.save()
-            logger.info(f"✅ Device ajouté avec succès : {serializer.data}")
+            logger.info(f"Device ajouté avec succès : {serializer.data}")
             return Response({
                 "data": serializer.data,
                 "message": "Device ajouté avec succès",
@@ -66,7 +66,7 @@ class AddDevice(generics.CreateAPIView):
                 "code": 201
             }, status=status.HTTP_201_CREATED)
         else:
-            logger.error(f"❌ Erreurs de validation : {serializer.errors}")
+            logger.error(f"Erreurs de validation : {serializer.errors}")
             return Response({
                 "data": serializer.errors,
                 "message": "Erreur de validation",
@@ -246,10 +246,10 @@ class FamilyNumberView(APIView):
             for fn in device.family_numbers.all()
         }
 
-        # 🧠 Mapping fixe des noms selon le numéro
+        #Mapping fixe des noms selon le numéro
         name_map = {0: "111", 1: "2222", 2: "3333"}
 
-        # 📋 Construire la réponse avec les 3 cases (0,1,2)
+        #Construire la réponse avec les 3 cases (0,1,2)
         familyNumber = []
         for i in range(3):
             fn = existing_numbers.get(i)
@@ -457,12 +457,8 @@ class ReleaseParentToDevice(generics.CreateAPIView):
         # Vérifier si déjà lié
         famille = FamilyMember.objects.filter(device=device).first()
         if famille:
-            return Response({
-                "data": None,
-                "message": "Ce tag est déjà attribué à un parent.",
-                "success": False,
-                "code": 409
-            }, status=status.HTTP_409_CONFLICT)
+            slug=device.slug
+            return self.handle_new_parent_request(device, slug_parent, relation, slug, request)
 
         # Créer le lien famille
         family_member = FamilyMember.objects.create(
@@ -492,4 +488,55 @@ class ReleaseParentToDevice(generics.CreateAPIView):
             "code": 200
         }, status=status.HTTP_200_OK)
         
-            
+
+
+    def handle_new_parent_request(self, device, slug_parent, relation, slug, request):
+        """Envoyer une demande de co-parenting au parent principal."""
+        exists = FamilyMember.objects.filter(parent__slug=slug_parent, device__slug=slug).exists()
+        if exists:
+            return Response({
+                "data": None,
+                "message": "Vous avez déjà une relation de parenté avec cet enfant.",
+                "access": False,
+                "code": "400"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            parent = Parent.objects.get(slug=slug_parent)
+        except Parent.DoesNotExist:
+            return Response({
+                'data': None,
+                'message': "Aucun parent trouvé pour la création du compte de l'enfant",
+                'success': False
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        first_family_member = FamilyMember.objects.filter(device=device).order_by('created_at').first()
+
+        comment = f"Un nouveau parent souhaite ajouter {device.prenom} {device.nom}."
+        notification = AlertNotification.objects.create(type_notification="demande", parent=first_family_member.parent, comment=comment)
+        Demande.objects.create(
+            device=device,
+            parent=parent,
+            parent_recepteur=first_family_member.parent,
+            relationship=relation,
+            notification=notification
+        )
+
+        # Message unique pour notification et SMS
+        message_text = f"Bonjour {parent.prenom} {parent.nom} a exprimé le souhait de devenir co-parent pour votre enfant {device.prenom} {device.nom}. Votre décision est essentielle pour renforcer le cercle de protection de votre enfant."
+
+        if first_family_member.parent.fcm_token:
+            try:
+                send_simple_notification(first_family_member.parent.fcm_token, message_text)
+            except Exception as e:
+                print(f"Erreur lors de l'envoi de la notification : {e}")
+
+        if first_family_member.parent.phone_number:
+            send_sms(first_family_member.parent.phone_number, message_text)
+
+        return Response({
+            "data": ParentSerializer(first_family_member.parent).data,
+            "message": f"Merci d'attendre l'approbation du parent {first_family_member.parent.prenom} {first_family_member.parent.nom}",
+            "success": True,
+            "code": 200
+        }, status=status.HTTP_200_OK)
