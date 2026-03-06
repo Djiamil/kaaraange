@@ -58,34 +58,59 @@ def send_sms(to_phone_number, text):
         return Response({"error": f"Erreur lors de la requête vers l'API Africa Mobile : {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 # Fonction pour envoyer les notifications via firebase
-def send_simple_notification(token, text, sound="default"):
+# def send_simple_notification(token, text, sound="default"):
+#     message = messaging.Message(
+#         notification=messaging.Notification(
+#             title='Bonjour,',
+#             body=text,
+#         ),
+#         data={
+#             "type": "alert"
+#         },
+#         android=messaging.AndroidConfig(
+#             priority='high',
+#             notification=messaging.AndroidNotification(
+#                 sound=sound
+#             ),
+#         ),
+#         apns=messaging.APNSConfig(
+#             payload=messaging.APNSPayload(
+#                 aps=messaging.Aps(
+#                     sound=sound
+#                 )
+#             )
+#         ),
+#         token=token,
+#     )
+
+#     response = messaging.send(message)
+#     print('✅ Successfully sent message:', response)
+
+def send_simple_notification(token, text, sound="warning_sound"):
     message = messaging.Message(
+        token=token,
         notification=messaging.Notification(
-            title='Bonjour,',
+            title="Notification",
             body=text,
         ),
-        data={
-            "type": "alert"
-        },
         android=messaging.AndroidConfig(
-            priority='high',
+            priority="high",
             notification=messaging.AndroidNotification(
-                sound=sound
+                sound=sound,
+                channel_id="warning_channel"
             ),
         ),
         apns=messaging.APNSConfig(
             payload=messaging.APNSPayload(
                 aps=messaging.Aps(
-                    sound=sound
+                    sound=f"{sound}.aiff"
                 )
             )
         ),
-        token=token,
     )
 
     response = messaging.send(message)
-    print('✅ Successfully sent message:', response)
-
+    print("✅ Notification envoyée :", response)
     
 # Fonction pour calculer la distance entre deux points géographiques (formule de Haversine)
 def calculer_distance(lat1, lon1, lat2, lon2):

@@ -607,7 +607,7 @@ class ParentValidateChildDataAndLink(generics.RetrieveAPIView):
         # Vérification utilisateur existant
         phone_number = request.data.get('phone_number')
         email = request.data.get('email')
-        required_fields = ['prenom', 'nom', 'date_de_naissance','password']
+        required_fields = ['prenom', 'nom','password']
         for field in required_fields:
             if not request.data.get(field):
                 return Response({
