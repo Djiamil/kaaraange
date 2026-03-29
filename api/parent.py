@@ -373,6 +373,7 @@ class SendAlertAllEmergenctContactForParentToChild(generics.RetrieveAPIView):
                 for contact in emergency_contacts:
                     text = f"Urgence ! Votre enfant {device.prenom} a besoin de votre attention immédiate. Prenez le temps de vérifier et de rassurer votre enfant."
                     send_sms(contact.phone_number, text)
+                send_message_for_family_members(device)
                 return Response({'data': None, 'message': 'Alert created and emergency contacts notified.',"success": True,"code" : 200}, status=status.HTTP_201_CREATED)
             else :
                 try:
@@ -1041,3 +1042,20 @@ class ChildPerimetreListView(generics.ListAPIView):
             },
             status=status.HTTP_200_OK)
         
+        
+def send_message_for_family_members(device):
+
+
+    family_numbers = FamilyNumber.objects.filter(device=device)
+
+    for family_number in family_numbers:
+        phone_number = family_number.number
+        text = f"Votre enfant {device.prenom} a besoin de votre attention immédiate. Prenez le temps de vérifier et de le rassurer."
+        send_sms(phone_number, text)
+    print("dougue na fi bou bakh")
+    return Response({
+        "data": None,
+        "message": "Emergency contacts have been notified.",
+        "success": True,
+        "code": 200
+    }, status=status.HTTP_200_OK)
