@@ -713,7 +713,7 @@ class ParentValidateChildDataAndLink(generics.RetrieveAPIView):
 
         first_family_member = FamilyMember.objects.filter(child=child).order_by('created_at').first()
 
-        comment = f"Un nouveau parent souhaite ajouter {child.prenom} {child.nom}."
+        comment = f"Un nouveau parent {parent.prenom} {parent.nom} souhaite ajouter {child.prenom} {child.nom}."
         notification = AlertNotification.objects.create(type_notification="demande", parent=first_family_member.parent, comment=comment)
         Demande.objects.create(
             enfant=child,
