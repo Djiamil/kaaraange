@@ -18,6 +18,8 @@ import io
 from django.http import JsonResponse
 from rest_framework.views import APIView
 from safedelete.models import HARD_DELETE
+from firebase_admin import credentials, messaging 
+
 
 
 
@@ -372,6 +374,7 @@ class sendNotificationOnly(generics.GenericAPIView):
         slug = kwargs.get('slug')
         text = request.data.get('text')
         title = request.data.get('title', "Bonjour") 
+        # chat_sound
         if not text:
             return Response({"data": None, "message": "Le texte ne doit pas être vide", "succes" : False , "code" : 400}, status=status.HTTP_400_BAD_REQUEST)
         try :
@@ -380,31 +383,36 @@ class sendNotificationOnly(generics.GenericAPIView):
             return Response({"data" : None , "message" : "Aucun utilisateur trouver pour se mail" , "success" : False, "code" : 404}, status.HTTP_404_NOT_FOUND)
         token = user.fcm_token
         to_phone_number = user.phone_number
-        if token :
+        if token:
             message = messaging.Message(
-            notification=messaging.Notification(
-                title=title,
-                body=text,
-            ),
-             data={
-            "type": "chat"
-            },
-            token=token,
-            # Configuration spécifique pour iOS
-            apns=messaging.APNSConfig(
-                payload=messaging.APNSPayload(
-                    aps=messaging.Aps(
-                        sound="default"
+                notification=messaging.Notification(
+                    title=title,
+                    body=text,
+                ),
+                data={
+                    "type": "chat"
+                },
+                token=token,
+
+                # Configuration iOS
+                apns=messaging.APNSConfig(
+                    payload=messaging.APNSPayload(
+                        aps=messaging.Aps(
+                            sound="chat_sound.aiff"
+                        )
                     )
-                )
-            ),
-            # Configuration spécifique pour Android
-            android=messaging.AndroidConfig(
-                notification=messaging.AndroidNotification(
-                    sound="default"
+                ),
+
+                # Configuration Android
+                android=messaging.AndroidConfig(
+                    priority="high",
+                    notification=messaging.AndroidNotification(
+                        sound="chat_sound",
+                        channel_id="chat_channel"
                     )
                 )
             )
+
             response = messaging.send(message)
             print('Successfully sent message:', response)
             # send_sms(to_phone_number, text)

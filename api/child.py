@@ -802,16 +802,34 @@ class ChildParentRelationship(generics.CreateAPIView):
     
 # Cette views vas juste nous permetre de retourner les parent d'un enfant
 class GetAllParentForthiChild(generics.ListAPIView):
-    serializer_class = FamilyMemberSerializer() 
+    serializer_class = FamilyMemberSerializer
     queryset = FamilyMember.objects.all()
-    def get(self, request, slug, *args,**kwargs):
+
+    def get(self, request, slug, *args, **kwargs):
         try:
-            family_members = FamilyMember.objects.filter(child__slug=slug)  
+            family_members = FamilyMember.objects.filter(child__slug=slug)
         except FamilyMember.DoesNotExist:
-            return Response({"data" : None, "message" : "Cet enfant n'est lié à aucun parent", "access" : True, "code" : 200}, status=status.HTTP_200_OK)
+            return Response({
+                "data": None,
+                "message": "Cet enfant n'est lié à aucun parent",
+                "access": True,
+                "code": 200
+            }, status=status.HTTP_200_OK)   
+
         if family_members:
-            parent = [family_member.parent for family_member in family_members]
-            serializer = ParentSerializer(parent, many=True)
-            return Response({"data" : serializer.data , "message" : "Liste des parents", "access" : True, "code" : 200}, status=status.HTTP_200_OK)
-        else:
-            return Response({"data" : None, "message" : "Cet enfant n'est lié à aucun parent", "access" : True, "code" : 200}, status=status.HTTP_200_OK)
+            parents = list({fm.parent for fm in family_members})  # enlève les doublons
+            serializer = ParentSerializer(parents, many=True)
+
+            return Response({
+                "data": serializer.data,
+                "message": "Liste des parents",
+                "access": True,
+                "code": 200
+            }, status=status.HTTP_200_OK)
+
+        return Response({
+            "data": None,
+            "message": "Cet enfant n'est lié à aucun parent",
+            "access": True,
+            "code": 200
+        }, status=status.HTTP_200_OK)
