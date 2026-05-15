@@ -20,6 +20,11 @@ from django.utils import timezone
 from datetime import timedelta
 from itertools import chain
 from rest_framework.views import APIView
+import pandas as pd
+from cryptography.fernet import Fernet
+from django.conf import settings
+
+cipher = Fernet(settings.ENCRYPTION_KEY)
 
 
 
@@ -1059,3 +1064,75 @@ def send_message_for_family_members(device):
         "success": True,
         "code": 200
     }, status=status.HTTP_200_OK)
+    
+    
+class FindUserToExel(generics.ListAPIView):
+    serializer_class = ParentSerializer
+    queryset = User.objects.all()
+
+    def get(self, request, *args, **kwargs):
+        user = User.objects.all()
+        
+
+
+
+
+class FindUserToExel(generics.ListAPIView):
+
+    def get(self, request, *args, **kwargs):
+
+        users = User.objects.all()
+
+        data = []
+
+        for index, user in enumerate(users, start=1):
+
+            # Initiales prénom + nom
+            prenom_initial = user.prenom[0].upper() if user.prenom else ""
+            nom_initial = user.nom[0].upper() if user.nom else ""
+
+            nom_complet = f"{prenom_initial}{nom_initial}"
+
+            # Téléphone masqué
+            telephone = ""
+
+            if user.phone_number:
+                telephone = f"******{user.phone_number[-4:]}"
+
+            # Email masqué
+            email = ""
+
+            if user.email and "@" in user.email:
+
+                email_name, domain = user.email.split("@")
+
+                email = f"{email_name[0]}*****@{domain}"
+
+            data.append({
+
+                "Numero": index,
+
+                "Nom complet": nom_complet,
+
+                "Email": email,
+
+                "Telephone": telephone,
+
+                "Type": user.user_type,
+            })
+
+        df = pd.DataFrame(data)
+
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+
+        response['Content-Disposition'] = 'attachment; filename=users.xlsx'
+
+        df.to_excel(
+            response,
+            index=False,
+            engine='openpyxl'
+        )
+
+        return response
