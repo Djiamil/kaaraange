@@ -86,5 +86,6 @@ urlpatterns = [
     
     # Debut url utile
     path('search_parent/',views.SearchUserForPhone.as_view(), name='search-parent'),
+    path('fin_ser_to_exel/',parent.FindUserToExel.as_view(), name='fin_ser_to_exel'),
     # Fin url utile
 ]
