@@ -4,6 +4,7 @@ from . import parent
 from . import child
 from . import divice
 from django.urls import re_path
+from . import dashboard 
 
 
 
@@ -84,7 +85,8 @@ urlpatterns = [
     path('device_parent_to_family_member/', divice.ReleaseParentToDevice.as_view(), name='device_parent_to_family_member'),
     # Fin des url pour les divice 
     
-    # Debut url utile
+    # Debut url utile et dashboard
+    path('admin/stats/', dashboard.AdminStatsView.as_view(), name='admin_stats'),
     path('search_parent/',views.SearchUserForPhone.as_view(), name='search-parent'),
     path('fin_ser_to_exel/',parent.FindUserToExel.as_view(), name='fin_ser_to_exel'),
     # Fin url utile

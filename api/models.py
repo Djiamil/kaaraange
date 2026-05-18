@@ -88,6 +88,7 @@ class User(AbstractBaseUser, PermissionsMixin, SafeDeleteModel):
     objects = CustomUserManager()
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True, verbose_name="Avatar")
     fcm_token = models.CharField(max_length=255, null=True, blank=True, verbose_name="FCM Token")  # Ajout du FCM Token
+    created_at = models.DateTimeField(default=timezone.now)
 
 
 
@@ -158,6 +159,7 @@ class Device(models.Model):
     battery_level = models.IntegerField(default=100)
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
     fcm_token = models.CharField(max_length=255, null=True, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
         return f"{self.model_name} ({self.imei})"
