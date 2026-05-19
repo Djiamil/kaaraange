@@ -50,7 +50,7 @@ INSTALLED_APPS = [
     # Autres applications...
     'rest_framework',
     'rest_framework_simplejwt',
-    'api'
+    'api',
 ]
 
 MIDDLEWARE = [
@@ -153,6 +153,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'mediafile')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTHENTICATION_BACKENDS = [
+    'api.backends.PhoneNumberBackend',
     'django.contrib.auth.backends.ModelBackend',
 ]
 
