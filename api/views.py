@@ -65,7 +65,7 @@ class LoginViews(TokenObtainPairView):
             return Response({'data': None, 'message': 'Password is required', 'sucess' : False , 'code' : 400}, status=status.HTTP_400_BAD_REQUEST)
         try:
             # Vérifier si l'utilisateur existe déjà dans la base de données
-            user = User.objects.get(email=email)
+            user = User.objects.filter(email=email).first()
         except User.DoesNotExist:
             user = None
         if user:
