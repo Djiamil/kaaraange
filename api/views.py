@@ -17,6 +17,10 @@ from rest_framework_simplejwt.tokens import AccessToken
 import io
 from django.http import JsonResponse
 from rest_framework.views import APIView
+from safedelete.models import HARD_DELETE
+from firebase_admin import credentials, messaging 
+
+
 
 
  
@@ -61,7 +65,7 @@ class LoginViews(TokenObtainPairView):
             return Response({'data': None, 'message': 'Password is required', 'sucess' : False , 'code' : 400}, status=status.HTTP_400_BAD_REQUEST)
         try:
             # Vérifier si l'utilisateur existe déjà dans la base de données
-            user = User.objects.get(email=email)
+            user = User.objects.filter(email=email).first()
         except User.DoesNotExist:
             user = None
         if user:
@@ -84,13 +88,13 @@ class LoginViews(TokenObtainPairView):
         elif registration_method in ['GOOGLE', 'FACEBOOK', 'APPLE']:
             # Créer un nouvel utilisateur dans la base de données avec la méthode de connexion externe
             user = Parent.objects.create(email=email,
-                                         phone_number=phone_number,
-                                         prenom = prenom,
-                                         nom = nom,
-                                         adresse=adresse,
-                                         gender = gender,
-                                         avatar = avatar,
-                                         registration_method=registration_method,password=make_password(password))
+                phone_number=phone_number,
+                prenom = prenom,
+                nom = nom,
+                adresse=adresse,
+                gender = gender,
+                avatar = avatar,
+                registration_method=registration_method,password=make_password(password))
             # Générer le token d'accès et retourner les informations de l'utilisateur
             access_token = AccessToken.for_user(user)
             serializer = UserSerializer(user)
@@ -370,6 +374,7 @@ class sendNotificationOnly(generics.GenericAPIView):
         slug = kwargs.get('slug')
         text = request.data.get('text')
         title = request.data.get('title', "Bonjour") 
+        # chat_sound
         if not text:
             return Response({"data": None, "message": "Le texte ne doit pas être vide", "succes" : False , "code" : 400}, status=status.HTTP_400_BAD_REQUEST)
         try :
@@ -378,28 +383,50 @@ class sendNotificationOnly(generics.GenericAPIView):
             return Response({"data" : None , "message" : "Aucun utilisateur trouver pour se mail" , "success" : False, "code" : 404}, status.HTTP_404_NOT_FOUND)
         token = user.fcm_token
         to_phone_number = user.phone_number
-        if token :
+        if token:
             message = messaging.Message(
-            notification=messaging.Notification(
-                title=title,
-                body=text,
-            ),
-            token=token,
+                notification=messaging.Notification(
+                    title=title,
+                    body=text,
+                ),
+                data={
+                    "type": "chat"
+                },
+                token=token,
+
+                # Configuration iOS
+                apns=messaging.APNSConfig(
+                    payload=messaging.APNSPayload(
+                        aps=messaging.Aps(
+                            sound="chat_sound.aiff"
+                        )
+                    )
+                ),
+
+                # Configuration Android
+                android=messaging.AndroidConfig(
+                    priority="high",
+                    notification=messaging.AndroidNotification(
+                        sound="chat_sound",
+                        channel_id="chat_channel"
+                    )
+                )
             )
+
             response = messaging.send(message)
             print('Successfully sent message:', response)
-            send_sms(to_phone_number, text)
+            # send_sms(to_phone_number, text)
             return Response({"data" : None, "message" : "Notification envoyer avec succés", "success" : True, "code" : 200}, status = status.HTTP_200_OK)
-        elif to_phone_number:
-            send_sms(to_phone_number, text)
-            return Response({"data" : None, "message" : "Notification envoyer avec succés", "success" : True, "code" : 200}, status = status.HTTP_200_OK)
+        # elif to_phone_number:
+        #     send_sms(to_phone_number, text)
+        #     return Response({"data" : None, "message" : "Notification envoyer avec succés", "success" : True, "code" : 200}, status = status.HTTP_200_OK)
         else:
             return Response({"data": None, "message": "Aucun moyen de contact trouvé pour cet utilisateur", "success": False, "code": 400},
                             status=status.HTTP_400_BAD_REQUEST)
 class DeleteUserView(generics.DestroyAPIView):
     def delete(self, request, *args, **kwargs):
         phone_or_email = request.data.get("phone_or_email")
-        password = request.data.get('password')
+        password = request.data.get('password')  # Si jamais tu veux vérifier un jour
 
         if not phone_or_email:
             return Response(
@@ -408,25 +435,40 @@ class DeleteUserView(generics.DestroyAPIView):
             )
 
         # Trouver l'utilisateur par email ou téléphone
-        user = None
-        if phone_or_email:
-            user = User.objects.filter(email=phone_or_email).first()
-        if phone_or_email and not user:
-            user = User.objects.filter(phone_number=phone_or_email).first()
+        user = User.objects.filter(email=phone_or_email).first() or User.objects.filter(phone_number=phone_or_email).first()
 
         if not user:
             return Response(
                 {"message": "Utilisateur non trouvé", "success": False, "code": 404},
                 status=status.HTTP_404_NOT_FOUND,
             )
+
         if user.user_type == "PARENT":
             family_members = FamilyMember.objects.filter(parent=user)
-            for family_member in family_members :
+            for family_member in family_members:
                 family_member.child.delete()
             family_members.delete()
-        user.delete()
+
+        user.delete(force_policy=HARD_DELETE)
+
         return Response(
             {"message": "Utilisateur supprimé avec succès", "success": True, "code": 200},
             status=status.HTTP_200_OK,
         )
 
+class SearchUserForPhone(APIView):
+
+    def post(self, request, *args, **kwargs):
+        phone_number = request.data.get("phone")
+        if not phone_number:
+            return Response({"message": "Le champ 'phone' est requis", "success": False, "code": 400},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        parents = Parent.objects.filter(phone_number=phone_number)
+        if not parents.exists():
+            return Response({"message": "Aucun utilisateur avec ce téléphone", "success": False, "code": 404},
+                            status=status.HTTP_404_NOT_FOUND)
+
+        serializer = ParentSerializer(parents, many=True)
+        return Response({"data": serializer.data, "message": "Utilisateur(s) récupéré(s) avec succès",
+                         "code": 200, "success": True}, status=status.HTTP_200_OK)

@@ -2,7 +2,9 @@ from django.urls import path
 from . import views
 from . import parent
 from . import child
+from . import divice
 from django.urls import re_path
+from . import dashboard 
 
 
 
@@ -64,7 +66,7 @@ urlpatterns = [
     path('child_update/<slug:slug>/', child.UpdateChild.as_view(), name='update_child'), 
     path('add_allergy/', child.ChildAlergyApiViews.as_view(), name='child_add_allergy'),
     path('parent_register_child/', child.parentResisterChild.as_view(), name='parent_register_child'),
-    path('parent_validate_child_subscriber/<slug:slug>/', child.parentValidateChildDataAndLink.as_view(), name='parent_validate_child_subscriber'),
+    path('parent_validate_child_subscriber/<slug:slug>/', child.ParentValidateChildDataAndLink.as_view(), name='parent_validate_child_subscriber'),
     path('child_parent_relationship/<slug:slug>/', child.ChildParentRelationship.as_view(), name='child_parent_relationship'),
     path('parent_list/<slug:slug>/', child.GetAllParentForthiChild.as_view(), name='parent_list'),
     # fin des routes qui conserne l'enfant  
@@ -73,4 +75,19 @@ urlpatterns = [
     path('lislinkchildtoparent/', views.lislinkchildtoparent.as_view(), name='lislinkchildtoparent'), 
     path('qr-code/<int:pk>/', views.GetQRCode.as_view(), name='get_qr_code'),
     path('tesspositionEnfantInZone/<slug:slug>/', parent.tesspositionEnfantInZone.as_view(), name='tesspositionEnfantInZone'),
+    
+    # Debut des url pour les divices 
+    path('devices/', divice.AddDevice.as_view(), name='add-device'),  # POST = ajout device 
+    path('devices/battery-status/', divice.BatteryStatusSave.as_view(), name='battery-status'),
+    path('device/family-number/', divice.WellStockFamilyNumberForDevice.as_view(), name='family-number-device'),
+    path('device/family-numbers/', divice.FamilyNumberView.as_view(), name='device/family-numbers/'),
+    path('geolocaliser_par_wifi_mozilla/', divice.GeolocaliserParWifiMozilla.as_view(), name='geolocaliser_par_wifi_mozilla'),
+    path('device_parent_to_family_member/', divice.ReleaseParentToDevice.as_view(), name='device_parent_to_family_member'),
+    # Fin des url pour les divice 
+    
+    # Debut url utile et dashboard
+    path('admin/stats/', dashboard.AdminStatsView.as_view(), name='admin_stats'),
+    path('search_parent/',views.SearchUserForPhone.as_view(), name='search-parent'),
+    path('fin_ser_to_exel/',parent.FindUserToExel.as_view(), name='fin_ser_to_exel'),
+    # Fin url utile
 ]

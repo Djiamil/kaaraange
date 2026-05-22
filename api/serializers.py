@@ -151,10 +151,17 @@ class DetailDemandeSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class ChildWithPerimetreSecuriteSerializer(serializers.ModelSerializer):
-    child = ChildSerializer()  # Charger les détails de l'enfant
+    child = serializers.SerializerMethodField()
+
     class Meta:
         model = ChildWithPerimetreSecurite
         fields = '__all__'
+
+    def get_child(self, obj):
+        instance = obj.child if obj.child else obj.device
+        if instance:
+            return ChildSerializer(instance).data
+        return None
 
 
 class ListeChildWithPerimetreSecuriteSerializer(serializers.ModelSerializer):
@@ -188,3 +195,87 @@ class PerimetreAssocieSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChildWithPerimetreSecurite
         fields = ["slug", "libelle", "rayon", "latitude", "longitude", "is_active"]
+
+class DeviceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Device
+        fields = '__all__'
+        
+class SerializerBatteryStatus(serializers.ModelSerializer):
+    class Meta:
+        model = BatteryStatus
+        fields = '__all__'
+
+
+class DeviceSerializerDetail(serializers.ModelSerializer):
+    allergies = serializers.SerializerMethodField()
+    medical_issues = serializers.SerializerMethodField()
+    last_location = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Device
+        fields = [
+            'id', 'slug', 'imei', 'model_name', 'dev_type', 'email', 'phone_number',
+            'password', 'prenom', 'nom', 'is_active', 'is_archive', 'user_type',
+            'accepted_terms', 'registration_method', 'otp_token', 'gender',
+            'date_de_naissance', 'type_appareil', 'numeros_urgences', 'ecole',
+            'battery_level', 'avatar', 'allergies', 'medical_issues', 'last_location'
+        ]
+
+    def get_allergies(self, obj):
+        return ChildAlergySerializer(obj.allergies_device.all(), many=True).data
+
+    def get_medical_issues(self, obj):
+        return MedicalIssueSerializer(obj.medical_issues_device.all(), many=True).data
+
+    def get_last_location(self, obj):
+        last_location = Location.objects.filter(device=obj).order_by('-datetime_localisation').first()
+        if last_location:
+            return LocationSerializer(last_location).data
+        return None
+
+class FamilyNumberSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FamilyNumber
+        fields = ['id', 'device', 'number', 'serialnumber', 'name', 'url']
+        read_only_fields = ['serialnumber', 'name']
+
+    def create(self, validated_data):
+        device = validated_data["device"]
+        existing_numbers = FamilyNumber.objects.filter(device=device).count()
+
+        if existing_numbers >= 3:
+            raise serializers.ValidationError("Ce device a déjà 3 numéros enregistrés.")
+
+        # Attribution automatique du serialnumber
+        validated_data["serialnumber"] = existing_numbers
+
+        # Attribution automatique du nom : "111", "222", "333"
+        names = ["111", "222", "333"]
+        validated_data["name"] = names[existing_numbers]
+
+        return super().create(validated_data)
+
+
+
+class EmergencyAlertSerializerforAlert(serializers.ModelSerializer):
+    child = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = EmergencyAlert
+        fields = '__all__'  # ou liste explicite
+
+    def get_child(self, obj):
+        if obj.child is not None:
+            return ChildSerializerDetail(obj.child).data
+        elif obj.device is not None:
+            return DeviceSerializerDetail(obj.device).data
+        return None
+    
+class AlertNotificationSerializerAlert(serializers.ModelSerializer):
+    alert = EmergencyAlertSerializerforAlert()  # Serialise la relation vers EmergencyAlert
+    parent = ParentSerializer()
+    
+    class Meta:
+        model = AlertNotification
+        fields = '__all__'

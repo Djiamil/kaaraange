@@ -88,6 +88,7 @@ class User(AbstractBaseUser, PermissionsMixin, SafeDeleteModel):
     objects = CustomUserManager()
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True, verbose_name="Avatar")
     fcm_token = models.CharField(max_length=255, null=True, blank=True, verbose_name="FCM Token")  # Ajout du FCM Token
+    created_at = models.DateTimeField(default=timezone.now)
 
 
 
@@ -128,6 +129,41 @@ class ParentChildLink(models.Model):
     def __str__(self):
         return f"{self.child} - {self.child}"
 
+# Model pour jouter non divices
+class Device(models.Model):
+    slug = models.SlugField(default=uuid.uuid1)
+    imei = models.CharField(max_length=20, unique=True)
+    model_name = models.CharField(max_length=50)
+    dev_type = models.CharField(max_length=20)
+    child = models.OneToOneField(Child, on_delete=models.CASCADE, related_name="device", null=True, blank=True)
+    nom = models.CharField(max_length=100, null=True, blank=True)
+    prenom = models.CharField(max_length=100, null=True, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    # Champs similaires à ceux de l’enfant
+    email = models.EmailField(unique=True, null=True, blank=True)
+    phone_number = models.CharField(max_length=15, unique=True, null=True, blank=True)
+    password = models.CharField(max_length=255, null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    is_archive = models.BooleanField(default=False)
+    is_staff = models.BooleanField(default=False)
+    user_type = models.CharField(max_length=50, choices=USER_TYPES, default='device')
+    accepted_terms = models.BooleanField(default=False)
+    registration_method = models.CharField(max_length=50, choices=REGISTRATION_METHOD, null=True, blank=True)
+    otp_token = models.CharField(max_length=6, null=True, blank=True)
+    gender = models.CharField(max_length=10, null=True, blank=True)
+    date_de_naissance = models.DateField(null=True, blank=True)
+    type_appareil = models.CharField(max_length=100, null=True, blank=True)
+    vous_appelle_til = models.CharField(max_length=100, null=True, blank=True)
+    numeros_urgences = models.TextField(null=True, blank=True)
+    ecole = models.CharField(max_length=100, null=True, blank=True)
+    battery_level = models.IntegerField(default=100)
+    avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
+    fcm_token = models.CharField(max_length=255, null=True, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"{self.model_name} ({self.imei})"
+    
 class FamilyMember(models.Model):
     PAPA = 'papa'
     MAMAN = 'maman'
@@ -147,8 +183,9 @@ class FamilyMember(models.Model):
     slug = models.SlugField(default=uuid.uuid1)
     relation = models.CharField(max_length=100, choices=RELATIONSHIP_CHOICES)
     parent = models.ForeignKey(Parent, on_delete=models.CASCADE, blank=True, null=True)
-    child = models.ForeignKey(Child, on_delete=models.CASCADE)
-    created_at = models.DateTimeField(auto_now_add=True, null=True,blank=True)  # Ajout de created_at
+    child = models.ForeignKey(Child, on_delete=models.CASCADE, blank=True,null=True)
+    device = models.ForeignKey(Device, on_delete=models.CASCADE, blank=True,null=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True,blank=True)
 
     def __str__(self):
         return f"{self.relation}: {self.parent} - {self.child}"
@@ -213,19 +250,27 @@ class SMS(models.Model):
     text = models.TextField()
     to = models.CharField(max_length=255)
     created_at = models.DateTimeField(default=timezone.now)
-
-
-
+    
+# Model pour stoquer les position de l'enfant
 class Location(models.Model):
     slug = models.SlugField(default=uuid.uuid1)
-    enfant = models.ForeignKey(Child, on_delete=models.CASCADE)  # Relation Many-to-One avec Child
-    latitude = models.CharField(max_length=50)  # ou une longueur appropriée pour les coordonnées
-    longitude = models.CharField(max_length=50)  # ou une longueur appropriée pour les coordonnées
-    adresse = models.CharField(max_length=255)
+    enfant = models.ForeignKey(Child, on_delete=models.SET_NULL, null=True, blank=True)  # nullable
+    device = models.ForeignKey(Device, on_delete=models.SET_NULL, null=True, blank=True, related_name="locations")  # nullable
+    latitude = models.CharField(max_length=50, null=True, blank=True)  # ou une longueur appropriée pour les coordonnées
+    longitude = models.CharField(max_length=50, null=True, blank=True)  # ou une longueur appropriée pour les coordonnées
+    adresse = models.CharField(max_length=255,null=True, blank=True)
     datetime_localisation = models.DateTimeField(default=timezone.now)
+    location_type = models.CharField(
+        max_length=10,
+        choices=[('gps', 'GPS'), ('wifi', 'Wi-Fi'), ('cell', 'Cell')],
+        default='gps'
+    )
+    wifi_info = models.TextField(blank=True, null=True)
+    cell_info = models.TextField(blank=True, null=True)
 
     def __str__(self):
-        return f"{self.enfant.nom} - {self.adresse} ({self.latitude}, {self.longitude})"
+        enfant_nom = self.enfant.nom if self.enfant else "Sans enfant"
+        return f"{enfant_nom} - {self.adresse or 'Adresse inconnue'} ({self.latitude or 'lat?'}, {self.longitude or 'lon?'})"
 
 # Model pour enregistre les alergie des enfants
 class Allergy(models.Model):
@@ -235,6 +280,8 @@ class Allergy(models.Model):
     allergy_type = models.CharField(max_length=100)  # Champ de texte libre pour le type d'allergie
     description = models.TextField(blank=True, null=True)
     date_identified = models.DateField(default=timezone.now)
+    device = models.ForeignKey(Device, on_delete=models.SET_NULL, null=True, blank=True, related_name="allergies_device")  # nullable
+
 
     def __str__(self):
         return f"{self.allergy_type} allergy for {self.child.nom}"
@@ -244,6 +291,7 @@ class MedicalIssue(models.Model):
     slug = models.SlugField(default=uuid.uuid1, unique=True)
     id = models.AutoField(primary_key=True)
     child = models.ForeignKey(Child, related_name='medical_issues', on_delete=models.CASCADE)
+    device = models.ForeignKey(Device, on_delete=models.SET_NULL, null=True, blank=True, related_name="medical_issues_device")  # nullable
     issue_type = models.CharField(max_length=100)  # Type de problème médical
     description = models.TextField(blank=True, null=True)
     date_identified = models.DateField(default=timezone.now)
@@ -282,19 +330,27 @@ class EmergencyAlert(models.Model):
     ]
     slug = models.SlugField(default=uuid.uuid1)
     id = models.AutoField(primary_key=True)
-    child = models.ForeignKey('Child', on_delete=models.CASCADE)
+    child = models.ForeignKey('Child', on_delete=models.CASCADE, null=True, blank=True)
     alert_type = models.CharField(max_length=20, choices=ALERT_TYPE_CHOICES, default="Prévenu par l'enfant")
     comment = models.TextField()
     alert_datetime = models.DateTimeField(auto_now_add=True)
     state = models.CharField(max_length=20, choices=ALERT_STATE_CHOICES, default='en_attente')
-    latitude = models.CharField(max_length=50, blank=True, null=True)  # ou une longueur appropriée pour les coordonnées
-    longitude = models.CharField(max_length=50, blank=True, null=True)  # ou une longueur appropriée pour les coordonnées
+    latitude = models.CharField(max_length=50, blank=True, null=True)
+    longitude = models.CharField(max_length=50, blank=True, null=True)
     adresse = models.CharField(max_length=255, blank=True, null=True)
     datetime_localisation = models.DateTimeField(default=timezone.now)
-
-
+    location_type = models.CharField(
+        max_length=10,
+        choices=[('gps', 'GPS'), ('wifi', 'Wi-Fi'), ('cell', 'Cell')],
+        default='gps'
+    )
+    device = models.ForeignKey(Device, on_delete=models.CASCADE, null=True, blank=True, related_name="alert_device_statuses")
+    wifi_info = models.TextField(blank=True, null=True)
+    cell_info = models.TextField(blank=True, null=True)
+    
     def __str__(self):
-        return f"Alert {self.alert_type} for {self.child.nom} on {self.alert_datetime}"
+        child_name = self.child.nom if self.child else "Unknown Child"
+        return f"Alert {self.alert_type} for {child_name} on {self.alert_datetime}"
 
     
 class AlertNotification(models.Model):
@@ -313,7 +369,7 @@ class AlertNotification(models.Model):
     notified_at = models.DateTimeField(auto_now_add=True)
     type_notification = models.CharField(max_length=10, choices=NOTIFICATION_TYPE, default='alerte')
     parent = models.ForeignKey(Parent, on_delete=models.CASCADE,null=True, blank=True, related_name='notification_parents')
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='en_cours')  # Nouveau champ
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='en_cours')
     comment = models.TextField(max_length=10,blank=True,null=True)
 
 
@@ -369,12 +425,21 @@ class PerimetreSecurite(models.Model):
 # Nouvelle process de lier un perimetre de securite a un enfant pour pouvoir l'activer ou la desactiver
 class ChildWithPerimetreSecurite(models.Model):
     slug = models.SlugField(default=uuid.uuid4, unique=True)
-    child = models.ForeignKey(Child, on_delete=models.CASCADE)
+    child = models.ForeignKey(Child, on_delete=models.CASCADE, null=True, blank=True)
+    device = models.ForeignKey(Device, on_delete=models.CASCADE, null=True, blank=True, related_name="perimetre_secure_device")
     perimetre_securite = models.ForeignKey(PerimetreSecurite, on_delete=models.CASCADE)
     is_active = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.child.nom} - {self.perimetre_securite.libelle} ({'Actif' if self.is_active else 'Inactif'})"
+        if self.child:
+            nom = self.child.nom
+        elif self.device:
+            nom = self.device.nom
+        else:
+            nom = "Aucun"
+
+        return f"{nom} - {self.perimetre_securite.libelle} ({'Actif' if self.is_active else 'Inactif'})"
+
     
 class Demande(models.Model):
     STATUS_CHOICES = [
@@ -391,9 +456,47 @@ class Demande(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='en_cours')  # Nouveau champ
+    device = models.ForeignKey(Device, on_delete=models.CASCADE, null=True, blank=True, related_name="demande_device")
 
     def __str__(self):
         return f"Demande de {self.relationship} pour {self.enfant} au parent {self.parent}"
+    
+# Model pour stoquer la baterie du divice
+class BatteryStatus(models.Model):
+    STATUS_CHOICES = [
+        ('1', 'Unknown'),
+        ('2', 'Charging'),
+        ('3', 'Not Charging'),
+        ('4', 'Disconnected'),
+        ('5', 'Fully Charged'),
+    ]
+
+    device = models.ForeignKey(Device, on_delete=models.CASCADE, related_name="battery_statuses")
+    battery = models.IntegerField()
+    status = models.CharField(max_length=1, choices=STATUS_CHOICES)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"{self.device} - {self.battery}% ({self.get_status_display()})"
+
+
+
+
+# Ce modèle permettra de stocker les 3 numéros abrégés pour chaque appareil :
+class FamilyNumber(models.Model):
+    slug = models.SlugField(default=uuid.uuid1)
+    device = models.ForeignKey(Device, on_delete=models.CASCADE, related_name='family_numbers')
+    serialnumber = models.IntegerField()  # 0, 1, 2
+    number = models.CharField(max_length=20)
+    name = models.CharField(max_length=10, null=True, blank=True)
+    url = models.URLField(blank=True, null=True)
+
+    class Meta:
+        unique_together = ('device', 'serialnumber')  # un seul numéro par bouton par appareil
+
+    def __str__(self):
+        return f"{self.device.imei} - {self.name} ({self.serialnumber})"
     
 # super admin kaaraange@gmail.com gthub prof edacy Darcia0001@gmail.com
 

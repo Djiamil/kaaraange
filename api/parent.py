@@ -18,6 +18,14 @@ from firebase_admin import credentials, messaging
 import math
 from django.utils import timezone
 from datetime import timedelta
+from itertools import chain
+from rest_framework.views import APIView
+import pandas as pd
+from cryptography.fernet import Fernet
+from django.conf import settings
+
+cipher = Fernet(settings.ENCRYPTION_KEY)
+
 
 
 
@@ -260,16 +268,8 @@ class ParentDashbord(generics.RetrieveAPIView):
 
     def get(self, request, *args, **kwargs):
         slug = self.kwargs.get('slug')
-        try:
-            parent = get_object_or_404(Parent, slug=slug)
-        except Parent.DoesNotExist:
-            return Response({
-                "data": None,
-                "message": 'Aucun parent trouvé',
-                "success": False,
-                "code": 400
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
+        parent = get_object_or_404(Parent, slug=slug)
+
         famille = FamilyMember.objects.filter(parent=parent)
         if not famille.exists():
             return Response({
@@ -279,14 +279,22 @@ class ParentDashbord(generics.RetrieveAPIView):
                 "code": 200
             }, status=status.HTTP_200_OK)
 
-        children = [member.child for member in famille]
+        # Filtrer les enfants non null
+        children = [member.child for member in famille if member.child]
+        devices = [member.device for member in famille if member.device]
+
+        serialized_children = ChildSerializerDetail(children, many=True).data
+        serialized_devices = DeviceSerializerDetail(devices, many=True).data
+
+        # Tu peux soit les fusionner dans une seule liste, soit les séparer dans deux clés
+        all_linked = serialized_children + serialized_devices
 
         return Response({
             "data": {
                 "parent": ParentSerializer(parent).data,
-                "children": ChildSerializerDetail(children, many=True).data
+                "children": all_linked,
             },
-            'message': 'Détails des enfants',
+            'message': 'Détails des enfants et appareils liés',
             'success': True,
             'code': 200
         }, status=status.HTTP_200_OK)
@@ -335,18 +343,23 @@ class SendAlertAllEmergenctContactForParentToChild(generics.RetrieveAPIView):
             latitude = request.data.get('latitude', '')
             longitude = request.data.get('longitude', '')
             adresse = request.data.get('adresse', '')
-            try:
-                child = Child.objects.filter(slug=slug).first()
-                text = f"Vous avez reçu une alerte de votre enfant {child.prenom}."
+            wifi_info = request.data.get('wifi_info', '')
+            cell_info = request.data.get('cell_info', '')
+            device = Device.objects.filter(imei=slug).first()
+            if device :
+                location_type = request.data.get('location_type', '')
+                text = f"Vous avez reçu une alerte de votre enfant {device.prenom} {device.nom}."
                 alert = EmergencyAlert.objects.create(
-                    child=child,
+                    device=device,
                     alert_type= "Prévenu par l'enfant",
                     comment= text,
                     latitude=latitude,
                     longitude=longitude,
-                    adresse=adresse
+                    location_type = location_type,
+                    wifi_info = wifi_info,
+                    cell_info = cell_info
                 )
-                family_members = FamilyMember.objects.filter(child=child)
+                family_members = FamilyMember.objects.filter(device=device)
                 emergency_contacts = []
                 for family_member in family_members:
                     parent = family_member.parent
@@ -356,23 +369,58 @@ class SendAlertAllEmergenctContactForParentToChild(generics.RetrieveAPIView):
                             emergency_contacts.append(contact)
                     if parent.fcm_token :
                         token =parent.fcm_token
-                        text = f"Vous avez reçu une alerte de votre enfant {child.prenom}."
+                        text = f"Vous avez reçu une alerte de votre enfant {device.prenom} {device.nom}."
                         try :
-                            send_simple_notification(token,text)
+                            send_simple_notification(token,text,"warning_sound")
                         except Exception as e:  # Capturer toutes les exceptions
                             print(f"Erreur lors de l'envoi de la notification à {parent}: {e}")
                     AlertNotification.objects.create(alert=alert,type_notification='alerte', parent=parent)
                 for contact in emergency_contacts:
-                    text = f"Urgence ! Votre enfant {child.prenom} a besoin de votre attention immédiate. Prenez le temps de vérifier et de rassurer votre enfant."
+                    text = f"Urgence ! Votre enfant {device.prenom} a besoin de votre attention immédiate. Prenez le temps de vérifier et de rassurer votre enfant."
                     send_sms(contact.phone_number, text)
+                send_message_for_family_members(device)
                 return Response({'data': None, 'message': 'Alert created and emergency contacts notified.',"success": True,"code" : 200}, status=status.HTTP_201_CREATED)
-            except Child.DoesNotExist:
-                return Response({'data': None, 'message': 'Child not found', 'success':True, "code" : 400}, status=status.HTTP_404_NOT_FOUND)
+            else :
+                try:
+                    child = Child.objects.filter(slug=slug).first()
+                    if not child:
+                        return Response({'data': None, 'message': 'Device or Child not found', 'success': True, "code": 404}, status=status.HTTP_404_NOT_FOUND)
+                    text = f"Vous avez reçu une alerte de votre enfant {child.prenom} {child.nom}."
+                    alert = EmergencyAlert.objects.create(
+                        child=child,
+                        alert_type= "Prévenu par l'enfant",
+                        comment= text,
+                        latitude=latitude,
+                        longitude=longitude,
+                        adresse=adresse
+                    )
+                    family_members = FamilyMember.objects.filter(child=child)
+                    emergency_contacts = []
+                    for family_member in family_members:
+                        parent = family_member.parent
+                        if parent :
+                            contacts = EmergencyContact.objects.filter(parent=parent)
+                            for contact in contacts:
+                                emergency_contacts.append(contact)
+                        if parent.fcm_token :
+                            token =parent.fcm_token
+                            text = f"Vous avez reçu une alerte de votre enfant {child.prenom} {child.nom}."
+                            try :
+                                send_simple_notification(token,text,"warning_sound")
+                            except Exception as e:  # Capturer toutes les exceptions
+                                print(f"Erreur lors de l'envoi de la notification à {parent}: {e}")
+                        AlertNotification.objects.create(alert=alert,type_notification='alerte', parent=parent)
+                    for contact in emergency_contacts:
+                        text = f"Urgence ! Votre enfant {child.prenom} a besoin de votre attention immédiate. Prenez le temps de vérifier et de rassurer votre enfant."
+                        send_sms(contact.phone_number, text)
+                    return Response({'data': None, 'message': 'Alert created and emergency contacts notified.',"success": True,"code" : 200}, status=status.HTTP_201_CREATED)
+                except Child.DoesNotExist:
+                    return Response({'data': None, 'message': 'Child not found', 'success':True, "code" : 400}, status=status.HTTP_404_NOT_FOUND)
 
 # Views pour lister les notification d'alerte recu par le parent
 
 class ParentNotificationListe(generics.ListAPIView):
-    serializer_class = AlertNotificationSerializer
+    serializer_class = AlertNotificationSerializerAlert
 
     def get_queryset(self):
         slug = self.kwargs.get('slug')
@@ -672,37 +720,49 @@ class AnabledOrDisabledPerimetreDesecurite(generics.CreateAPIView):
         
 
 # Views pour que le parent puis accepter ou rejeter une demande de co-parent
-class ParentAcceptedOrDismissRequest(generics.ListCreateAPIView):
+class ParentAcceptedOrDismissRequest(APIView):
     queryset = Demande.objects.all()
     serializer_class = DemandeSerializer
     def put(self, request, *args, **kwargs):
+        # print(demande.relationship)
         slug_notification = request.data.get('slug_notification','')
         status_notification = request.data.get('status_notification','')
         # Verifier  si la notification est lier a un demande et recupperer la demande
         try:
-            notification = AlertNotification.objects.filter(slug=slug_notification).last()
+            notification = AlertNotification.objects.filter(slug=slug_notification,status="en_cours").last()
             demande =Demande.objects.get(notification=notification)
         except Demande.DoesNotExist:
             return Response({"data": None, "message": "Aucune demande trouver pour ce notification", "success":False}, status=status.HTTP_404_NOT_FOUND)
         # tester si le premier parent accepte la demande de lier l'enfant et le co-parent on envoie des notifications au co-parent et creer le family member
-        if status_notification == "Accepté":
 
-            family_member = FamilyMember.objects.create(relation=demande.relationship,parent=demande.parent,child=demande.enfant)
+        if status_notification == "Accepté":
+            if demande.enfant:
+                family_member = FamilyMember.objects.create(relation=demande.relationship,parent=demande.parent,child=demande.enfant)
+            elif demande.device:
+                family_member = FamilyMember.objects.create(relation=demande.relationship,parent=demande.parent,device=demande.device)
             notification.status = "Accepté"
             notification.save()
+            notification.refresh_from_db()
             demande.status = "Accepté"
             demande.save()
-            back_notification = AlertNotification(type_notification="demande", parent=demande.parent,status="Accepté")
+            demande.refresh_from_db()
+            back_notification = AlertNotification(type_notification="demande", parent=demande.parent,status="en_cours")
             if demande.parent.fcm_token :
                 token =demande.parent.fcm_token
-                text = f"Bonne nouvelle ! Votre demande pour devenir co-parent de l'enfant  {demande.enfant.prenom} {demande.enfant.nom} a été acceptée par {demande.parent.prenom} {demande.parent.nom}.Ensemble, vous construisez un environnement plus sûr pour cet enfant."
+                if demande.enfant :
+                    text = f"Bonne nouvelle ! Votre demande pour devenir co-parent de l'enfant  {demande.enfant.prenom} {demande.enfant.nom} a été acceptée par {demande.parent.prenom} {demande.parent.nom}.Ensemble, vous construisez un environnement plus sûr pour cet enfant."
+                elif demande.device :
+                    text = f"Bonne nouvelle ! Votre demande pour devenir co-parent de l'enfant  {demande.device.prenom} {demande.device.nom} a été acceptée par {demande.parent.prenom} {demande.parent.nom}.Ensemble, vous construisez un environnement plus sûr pour cet enfant."
                 try :
                     send_simple_notification(token,text)
                 except Exception as e:  # Capturer toutes les exceptions
                     print(f"Erreur lors de l'envoi de la notification à {demande}: {e}")
             if demande.parent.phone_number:
                 phone_number = demande.parent.phone_number
-                text = f"Bonne nouvelle ! Votre demande pour devenir co-parent de l'enfant  {demande.enfant.prenom} {demande.enfant.nom} a été acceptée par {demande.parent.prenom} {demande.parent.nom}.Ensemble, vous construisez un environnement plus sûr pour cet enfant."
+                if demande.enfant :
+                    text = f"Bonne nouvelle ! Votre demande pour devenir co-parent de l'enfant  {demande.enfant.prenom} {demande.enfant.nom} a été acceptée par {demande.parent.prenom} {demande.parent.nom}.Ensemble, vous construisez un environnement plus sûr pour cet enfant."
+                elif demande.device :   
+                    text = f"Bonne nouvelle ! Votre demande pour devenir co-parent de l'enfant  {demande.device.prenom} {demande.device.nom} a été acceptée par {demande.parent.prenom} {demande.parent.nom}.Ensemble, vous construisez un environnement plus sûr pour cet enfant."
                 send_sms(phone_number, text)
             serializer = DemandeSerializer(demande)
             return Response({"data": serializer.data, "message" : "Demande accepté avec succées", "status" : True , "code" : 200},status=status.HTTP_200_OK)
@@ -710,18 +770,26 @@ class ParentAcceptedOrDismissRequest(generics.ListCreateAPIView):
             back_notification = AlertNotification(type_notification="demande", parent=demande.parent,status="Refusé")
             notification.status = "Refusé"
             notification.save()
+            notification.refresh_from_db()
             demande.status = "Refusé"
             demande.save()
+            demande.refresh_from_db()
             if demande.parent.fcm_token :
                 token =demande.parent.fcm_token
-                text = f"Votre demande pour devenir co-parent de l'enfant    {demande.enfant.prenom} {demande.enfant.nom} a été refusée par {demande.parent.prenom} {demande.parent.nom}.Nous vous encourageons à communiquer avec le parent principal pour en discuter."
+                if demande.enfant :
+                    text = f"Votre demande pour devenir co-parent de l'enfant    {demande.enfant.prenom} {demande.enfant.nom} a été refusée par {demande.parent.prenom} {demande.parent.nom}.Nous vous encourageons à communiquer avec le parent principal pour en discuter."
+                elif demande.device :   
+                    text = f"Votre demande pour devenir co-parent de l'enfant    {demande.device.prenom} {demande.device.nom} a été refusée par {demande.parent.prenom} {demande.parent.nom}.Nous vous encourageons à communiquer avec le parent principal pour en discuter."
                 try :
                     send_simple_notification(token,text)
                 except Exception as e:  # Capturer toutes les exceptions
                     print(f"Erreur lors de l'envoi de la notification à {demande}: {e}")
             if demande.parent.phone_number:
                 phone_number = demande.parent.phone_number
-                text = f"Votre demande pour devenir co-parent de l'enfant    {demande.enfant.prenom} {demande.enfant.nom} a été refusée par {demande.parent.prenom} {demande.parent.nom}.Nous vous encourageons à communiquer avec le parent principal pour en discuter."
+                if demande.enfant :
+                    text = f"Votre demande pour devenir co-parent de l'enfant    {demande.enfant.prenom} {demande.enfant.nom} a été refusée par {demande.parent.prenom} {demande.parent.nom}.Nous vous encourageons à communiquer avec le parent principal pour en discuter."
+                elif demande.device :   
+                    text = f"Votre demande pour devenir co-parent de l'enfant    {demande.device.prenom} {demande.device.nom} a été refusée par {demande.parent.prenom} {demande.parent.nom}.Nous vous encourageons à communiquer avec le parent principal pour en discuter."
                 send_sms(phone_number, text)
             serializer = DemandeSerializer(demande)
             return Response({"data" : serializer.data, "message" : "Demande rejété avec succées", "status" : True, "code" : 200}, status=status.HTTP_200_OK)
@@ -742,19 +810,45 @@ class DetailDemandeForNotification(generics.RetrieveAPIView):
 
 # Cette views vas juste nous permetre de retourner les enfant d'un parent
 class GetAllChildForthisParent(generics.ListAPIView):
-    serializer_class = FamilyMemberSerializer()
+    serializer_class = ChildSerializer  # On va switch dynamiquement
     queryset = FamilyMember.objects.all()
-    def get(self, request, slug, *args,**kwargs):
+
+    def get(self, request, slug, *args, **kwargs):
         try:
             family_members = FamilyMember.objects.filter(parent__slug=slug)
         except FamilyMember.DoesNotExist:
-            return Response({"data" : None, "message" : "Ce parent n'est lié à aucun enfant", "access" : True, "code" : 200}, status=status.HTTP_200_OK)
+            return Response({
+                "data": None,
+                "message": "Ce parent n'est lié à aucun enfant",
+                "access": True,
+                "code": 200
+            }, status=status.HTTP_200_OK)
+
         if family_members:
-            children = [family_member.child for family_member in family_members]
-            serializer = ChildSerializer(children, many=True)
-            return Response({"data" : serializer.data , "message" : "Liste des enfants", "access" : True, "code" : 200}, status=status.HTTP_200_OK)
-        else:
-            return Response({"data" : None, "message" : "Ce parent n'est lié à aucun enfant", "access" : True, "code" : 200}, status=status.HTTP_200_OK)
+            # Récupérer enfants et devices du parent
+            children = [fm.child for fm in family_members if fm.child]
+            devices = [fm.device for fm in family_members if fm.device]
+
+            # Sérialiser séparément
+            serialized_children = ChildSerializer(children, many=True).data
+            serialized_devices = DeviceSerializer(devices, many=True).data
+
+            # Fusionner dans une seule liste
+            combined_list = list(chain(serialized_children, serialized_devices))
+
+            return Response({
+                "data": combined_list,
+                "message": "Liste des enfants",
+                "access": True,
+                "code": 200
+            }, status=status.HTTP_200_OK)
+
+        return Response({
+            "data": None,
+            "message": "Ce parent n'est lié à aucun enfant",
+            "access": True,
+            "code": 200
+        }, status=status.HTTP_200_OK)
 
         
 # Le nouveau process pour creer un perimetre de securité par le parent et la liesons d'un perimetre de securité a un enfant
@@ -833,17 +927,35 @@ class ConnectChildSafetyPerimeter(generics.CreateAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        child = None
+        device = None
+
         try:
             child = Child.objects.get(slug=child_slug)
         except Child.DoesNotExist:
-            return Response(
-                {"data": None, "message": "Le compte enfant n'existe pas", "success": False, "code": 400},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            pass
+
+        try:
+            device = Device.objects.get(slug=child_slug)
+        except Device.DoesNotExist:
+            pass
+
+        if child:
+            child_with_psec = ChildWithPerimetreSecurite.objects.filter(
+                child=child, perimetre_securite=perimetre, is_active=True
+            ).first()
+        elif device:
+            child_with_psec = ChildWithPerimetreSecurite.objects.filter(
+                device=device, perimetre_securite=perimetre, is_active=True
+            ).first()
+        else:
+            return Response({
+                "data": None,
+                "message": "Enfant ou appareil non trouvé",
+                "success": False,
+                "code": 404
+            }, status=status.HTTP_404_NOT_FOUND)
         
-        child_with_psec = ChildWithPerimetreSecurite.objects.filter(
-            child=child, perimetre_securite=perimetre, is_active=True
-        ).first()
 
         if child_with_psec:
             child_with_psec.is_active = False
@@ -862,7 +974,7 @@ class ConnectChildSafetyPerimeter(generics.CreateAPIView):
 
         # Activer ou créer l'association entre l'enfant et le périmètre
         child_with_perimetre, created = ChildWithPerimetreSecurite.objects.update_or_create(
-            child=child, perimetre_securite=perimetre, defaults={"is_active": True}
+            child=child,device=device, perimetre_securite=perimetre, defaults={"is_active": True}
         )
 
         message = "Périmètre de sécurité activé avec succès" if not created else "Périmètre de sécurité affecté avec succès"
@@ -894,8 +1006,30 @@ class ParentPerimetreListView(generics.ListAPIView):
 # liste des perimetre de securité pour l'enfzntclass 
 class ChildPerimetreListView(generics.ListAPIView):
     def get(self, request, slug, *args, **kwargs):
-        child = get_object_or_404(Child, slug=slug)  
-        perimetres_associes = ChildWithPerimetreSecurite.objects.filter(child=child)
+        child = None
+        device = None
+
+        try:
+            child = Child.objects.get(slug=slug)
+        except Child.DoesNotExist:
+            pass
+
+        try:
+            device = Device.objects.get(slug=slug)
+        except Device.DoesNotExist:
+            pass
+
+        if child:
+            perimetres_associes = ChildWithPerimetreSecurite.objects.filter(child=child)
+        elif device:
+            perimetres_associes = ChildWithPerimetreSecurite.objects.filter(device=device)
+        else:
+            return Response({
+                "data": None,
+                "message": "Enfant ou appareil non trouvé",
+                "success": False,
+                "code": 404
+            }, status=status.HTTP_404_NOT_FOUND)
 
         # Sérialiser l'enfant une seule fois
         child_serializer = ChildSerializer(child)
@@ -913,3 +1047,92 @@ class ChildPerimetreListView(generics.ListAPIView):
             },
             status=status.HTTP_200_OK)
         
+        
+def send_message_for_family_members(device):
+
+
+    family_numbers = FamilyNumber.objects.filter(device=device)
+
+    for family_number in family_numbers:
+        phone_number = family_number.number
+        text = f"Votre enfant {device.prenom} a besoin de votre attention immédiate. Prenez le temps de vérifier et de le rassurer."
+        send_sms(phone_number, text)
+    print("dougue na fi bou bakh")
+    return Response({
+        "data": None,
+        "message": "Emergency contacts have been notified.",
+        "success": True,
+        "code": 200
+    }, status=status.HTTP_200_OK)
+    
+    
+class FindUserToExel(generics.ListAPIView):
+    serializer_class = ParentSerializer
+    queryset = User.objects.all()
+
+    def get(self, request, *args, **kwargs):
+        user = User.objects.all()
+        
+
+
+
+
+class FindUserToExel(generics.ListAPIView):
+
+    def get(self, request, *args, **kwargs):
+
+        users = User.objects.all()
+
+        data = []
+
+        for index, user in enumerate(users, start=1):
+
+            # Initiales prénom + nom
+            prenom_initial = user.prenom[0].upper() if user.prenom else ""
+            nom_initial = user.nom[0].upper() if user.nom else ""
+
+            nom_complet = f"{prenom_initial}{nom_initial}"
+
+            # Téléphone masqué
+            telephone = ""
+
+            if user.phone_number:
+                telephone = f"******{user.phone_number[-4:]}"
+
+            # Email masqué
+            email = ""
+
+            if user.email and "@" in user.email:
+
+                email_name, domain = user.email.split("@")
+
+                email = f"{email_name[0]}*****@{domain}"
+
+            data.append({
+
+                "Numero": index,
+
+                "Nom complet": nom_complet,
+
+                "Email": email,
+
+                "Telephone": telephone,
+
+                "Type": user.user_type,
+            })
+
+        df = pd.DataFrame(data)
+
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+
+        response['Content-Disposition'] = 'attachment; filename=users.xlsx'
+
+        df.to_excel(
+            response,
+            index=False,
+            engine='openpyxl'
+        )
+
+        return response
