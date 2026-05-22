@@ -19,6 +19,8 @@ from django.http import JsonResponse
 from rest_framework.views import APIView
 from safedelete.models import HARD_DELETE
 from firebase_admin import credentials, messaging 
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated
 
 
 
@@ -29,6 +31,8 @@ from firebase_admin import credentials, messaging
 class UserApiViews(generics.ListCreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+
     
     def post(self, request, *args, **kwargs):
         serializer = UserSerializer(data=request.data)
@@ -48,6 +52,7 @@ class UserApiViews(generics.ListCreateAPIView):
 # La views de connexion des utilisateur
 class LoginViews(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
+
 
     def post(self, request, *args, **kwargs):
         email = request.data.get('email', '')
@@ -159,6 +164,7 @@ class TestSendSMS(generics.CreateAPIView):
 class lislinkchildtoparent(generics.CreateAPIView):
         serializers = ParentChildLinkSerializer
         queryset = ParentChildLink.objects.all()
+    
         def get (self, request, *args, **kwargs):
             items = ParentChildLink.objects.all()
             serializer = ParentChildLinkSerializer(items, many=True)
@@ -168,6 +174,7 @@ class lislinkchildtoparent(generics.CreateAPIView):
 class GetQRCode(generics.RetrieveAPIView):
     queryset = ParentChildLink.objects.all()
     serializer_class = ParentChildLinkSerializer
+
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -313,6 +320,8 @@ class ChangePasswordUser(generics.GenericAPIView):
 class listeAlert(generics.GenericAPIView):
         alerts = EmergencyAlert.objects.all()
         serializer_class = EmergencyAlertSerializer
+        permission_classes = [IsAuthenticated]
+
         def get(self, request):
             alerts = EmergencyAlert.objects.all()
             serializers = EmergencyAlertSerializer(alerts,many=True)
@@ -424,6 +433,7 @@ class sendNotificationOnly(generics.GenericAPIView):
             return Response({"data": None, "message": "Aucun moyen de contact trouvé pour cet utilisateur", "success": False, "code": 400},
                             status=status.HTTP_400_BAD_REQUEST)
 class DeleteUserView(generics.DestroyAPIView):
+    permission_classes = [IsAuthenticated]
     def delete(self, request, *args, **kwargs):
         phone_or_email = request.data.get("phone_or_email")
         password = request.data.get('password')  # Si jamais tu veux vérifier un jour
