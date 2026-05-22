@@ -23,6 +23,8 @@ from rest_framework.views import APIView
 import pandas as pd
 from cryptography.fernet import Fernet
 from django.conf import settings
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated
 
 cipher = Fernet(settings.ENCRYPTION_KEY)
 
@@ -36,6 +38,7 @@ cipher = Fernet(settings.ENCRYPTION_KEY)
 class parentRegister(generics.CreateAPIView):
     queryset = PendingUser.objects.all()
     serializer_class = PendingUserGetSerializer
+    permission_classes = [IsAuthenticated]
     def get(self, request, *args, **kwargs):
         parents = Parent.objects.all()
       
@@ -106,6 +109,7 @@ class UpdateParent(generics.UpdateAPIView):
     queryset = Parent.objects.all()
     serializer_class = ParentSerializer
     lookup_field = 'slug'
+    permission_classes = [IsAuthenticated]
 
     def put(self, request, *args, **kwargs):
         slug = self.kwargs.get('slug')
@@ -200,6 +204,7 @@ class ConfirmRegistration(generics.CreateAPIView):
 class CounteUserActifAndUserInactif(generics.GenericAPIView):
     queryset = Parent.objects.all()
     serializer_class = ParentSerializer
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
         parent_actif_count = 0
@@ -234,7 +239,7 @@ class CounteUserActifAndUserInactif(generics.GenericAPIView):
 class ListeUserActifInactif(generics.GenericAPIView):
     queryset = Parent.objects.all()
     serializer_class = ParentSerializer
-
+    permission_classes = [IsAuthenticated]
     def get(self, request, *args, **kwargs):
         parent_actif_liste = []
         parent_inactif_liste = []
@@ -265,6 +270,7 @@ class ParentDashbord(generics.RetrieveAPIView):
     queryset = Parent.objects.all()
     serializer_class = ParentSerializer
     lookup_field = 'slug'
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
         slug = self.kwargs.get('slug')
@@ -303,6 +309,7 @@ class ParentDashbord(generics.RetrieveAPIView):
 class ParentAddEmergencyContactForChildAlert(generics.RetrieveAPIView):
     queryset = EmergencyContact.objects.all()
     serializer_class = EmergencyContactSerializer
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, slug, *args, **kwargs):
         child_contacts = EmergencyContact.objects.filter(parent__slug=slug)
@@ -338,6 +345,7 @@ class ParentAddEmergencyContactForChildAlert(generics.RetrieveAPIView):
 class SendAlertAllEmergenctContactForParentToChild(generics.RetrieveAPIView):
         queryset = EmergencyAlert.objects.all()
         serializer_class = EmergencyAlertSerializer
+
         def post(self, request, *args, **kwargs):
             slug = kwargs.get('slug')
             latitude = request.data.get('latitude', '')
@@ -421,6 +429,7 @@ class SendAlertAllEmergenctContactForParentToChild(generics.RetrieveAPIView):
 
 class ParentNotificationListe(generics.ListAPIView):
     serializer_class = AlertNotificationSerializerAlert
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         slug = self.kwargs.get('slug')
@@ -438,6 +447,7 @@ class ParentNotificationListe(generics.ListAPIView):
 class addPointTrajetForChild(generics.CreateAPIView):
     serializer_class = PointTrajetSerializer
     queryset = PointTrajet.objects.all()
+    permission_classes = [IsAuthenticated]
     def post(self, request, *args, **kwargs):
         try:
             # Utilise get pour obtenir un seul objet
@@ -479,6 +489,7 @@ class addPointTrajetForChild(generics.CreateAPIView):
 class addPerimetreDeSecurityForChild(generics.CreateAPIView):
     serializer_class = PerimetreaddSecuriteSerializer
     queryset = PerimetreSecurite.objects.all()
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
         try:
@@ -541,6 +552,7 @@ class addPerimetreDeSecurityForChild(generics.CreateAPIView):
 class tesspositionEnfantInZone(generics.CreateAPIView):
     serializer_class = ChildSerializer
     queryset = Child.objects.all()
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
         # Récupérer le pk de l'enfant depuis l'URL
@@ -561,7 +573,7 @@ class tesspositionEnfantInZone(generics.CreateAPIView):
 class PerimetreSecuriteView(generics.CreateAPIView):
     serializer_class = PerimetreSecuriteSerializer
     queryset = PerimetreSecurite.objects.all()
-
+    permission_classes = [IsAuthenticated]
     def get(self, request, slug, *args, **kwargs):
         try:
             perimetre_securite = PerimetreSecurite.objects.filter(enfant__slug=slug)
@@ -628,6 +640,7 @@ class PerimetreSecuriteView(generics.CreateAPIView):
 class PointDeReferenceViews(generics.CreateAPIView):
     serializer_class = PointTrajetSerializer
     queryset = PointTrajet.objects.all()
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, slug, *args, **kwargs):
         try:
@@ -694,6 +707,7 @@ class PointDeReferenceViews(generics.CreateAPIView):
 class AnabledOrDisabledPerimetreDesecurite(generics.CreateAPIView):
     serializer_class = PerimetreaddSecuriteSerializer
     queryset = PerimetreSecurite.objects.all()
+    permission_classes = [IsAuthenticated]
 
     def put(self, request, slug, *args, **kwargs):
         try:
@@ -723,6 +737,7 @@ class AnabledOrDisabledPerimetreDesecurite(generics.CreateAPIView):
 class ParentAcceptedOrDismissRequest(APIView):
     queryset = Demande.objects.all()
     serializer_class = DemandeSerializer
+    permission_classes = [IsAuthenticated]
     def put(self, request, *args, **kwargs):
         # print(demande.relationship)
         slug_notification = request.data.get('slug_notification','')
@@ -798,6 +813,7 @@ class ParentAcceptedOrDismissRequest(APIView):
 class DetailDemandeForNotification(generics.RetrieveAPIView):
     serializer_class = DetailDemandeSerializer()
     queryset = Demande.objects.all()
+    permission_classes = [IsAuthenticated]
     def get(self, request, slug, *args, **kwargs):
         slug = self.kwargs.get('slug')
         try:
@@ -812,7 +828,7 @@ class DetailDemandeForNotification(generics.RetrieveAPIView):
 class GetAllChildForthisParent(generics.ListAPIView):
     serializer_class = ChildSerializer  # On va switch dynamiquement
     queryset = FamilyMember.objects.all()
-
+    permission_classes = [IsAuthenticated]
     def get(self, request, slug, *args, **kwargs):
         try:
             family_members = FamilyMember.objects.filter(parent__slug=slug)
@@ -855,6 +871,7 @@ class GetAllChildForthisParent(generics.ListAPIView):
 class ParentAddPerimetreOfSecurity(generics.CreateAPIView):
     serializer_class = PerimetreaddSecuriteSerializer
     queryset = PerimetreSecurite.objects.all()
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
         slug_parent = request.data.get('slug_parent')
@@ -914,7 +931,7 @@ class ParentAddPerimetreOfSecurity(generics.CreateAPIView):
 class ConnectChildSafetyPerimeter(generics.CreateAPIView):
     serializer_class = ChildWithPerimetreSecuriteSerializer
     queryset = ChildWithPerimetreSecurite.objects.all()
-
+    permission_classes = [IsAuthenticated]
     def post(self, request, *args, **kwargs):
         perimetre_slug = request.data.get("perimetre_slug")
         child_slug = request.data.get("child_slug")
@@ -991,6 +1008,7 @@ class ConnectChildSafetyPerimeter(generics.CreateAPIView):
     
 # Lister les perimetre de securité d'un parent vec les enfant 
 class ParentPerimetreListView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
     def get(self, request, slug, *args, **kwargs):
         parent = get_object_or_404(Parent, slug=slug)  
         perimetres = PerimetreSecurite.objects.filter(parent=parent)
@@ -1005,6 +1023,7 @@ class ParentPerimetreListView(generics.ListAPIView):
 
 # liste des perimetre de securité pour l'enfzntclass 
 class ChildPerimetreListView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
     def get(self, request, slug, *args, **kwargs):
         child = None
         device = None

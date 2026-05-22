@@ -21,6 +21,8 @@ from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.permissions import IsAuthenticated
 from datetime import datetime, timedelta
 from django.utils.dateparse import parse_datetime
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated
 
 
 
@@ -29,6 +31,8 @@ from django.utils.dateparse import parse_datetime
 class RegisterChild(generics.CreateAPIView):
     queryset = PendingUser.objects.all()
     serializer_class = PendingUserGetSerializer
+    permission_classes = [IsAuthenticated]
+
 
     def get(self, request, *args, **kwargs):
         child = Child.objects.all()
@@ -96,6 +100,7 @@ class RegisterChild(generics.CreateAPIView):
                 }, status=status.HTTP_400_BAD_REQUEST)
 # views pour la modification de l'enfant 
 class UpdateChild(generics.UpdateAPIView):
+    permission_classes = [IsAuthenticated]
     queryset = Child.objects.all()
     serializer_class = ChildSerializer
     lookup_field = 'slug'
@@ -143,6 +148,7 @@ class UpdateChild(generics.UpdateAPIView):
 
 # views pour l'inscription de l'enfant c'est           plus utiliser pour le nouveau flow l'enfant ne recois plus de code otp
 class ConfirmRegistrationChild(generics.CreateAPIView):
+    permission_classes = [IsAuthenticated]
     def post(self, request):
         otp_code = request.data.get('otp_code')
         if not otp_code:
@@ -197,6 +203,7 @@ class ConfirmRegistrationChild(generics.CreateAPIView):
     
 # permet de relier le parent a l'nfant  dans le model parent link to child
 class ParendChildLink(generics.CreateAPIView):
+    permission_classes = [IsAuthenticated]
     def post(self, request, *args, **kwargs):
         slug_child = request.data.get('slug_child', None)
         slug_parent = request.data.get('slug_parent', None)
@@ -394,6 +401,7 @@ class AddLocalization(generics.RetrieveAPIView):
 # recuperer le dernier emplacement de l'enfant 
 class LastPosition(generics.RetrieveAPIView):
     serializer_class = LocationSerializer
+    permission_classes = [IsAuthenticated]
     queryset = Child.objects.all()
     lookup_field = 'slug'
     def get(self, request, *args, **kwargs):
@@ -442,6 +450,8 @@ class LastPosition(generics.RetrieveAPIView):
 # Recupere la trajectoir de l'enfant les differente point enregistre dans la journés
 class DailyTrajectoryView(generics.ListAPIView):
     serializer_class = LocationSerializer
+    permission_classes = [IsAuthenticated]
+
 
     def get(self, request, type="24hours", *args, **kwargs):
         slug = self.kwargs.get('slug')
@@ -564,6 +574,7 @@ class ChildAlergyApiViews(generics.RetrieveAPIView):
 # Creer un child qui sera valider par la par le parent une foix que les donné serons renseinger
 
 class parentResisterChild(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
     serializers_class = ChildSerializer
     queryset = Child.objects.all()
     def post(self, request, *args, **kwargs):
@@ -576,6 +587,7 @@ class parentResisterChild(generics.RetrieveAPIView):
 
 # La nouvelle methode pour valider la creation du compte de lenfant par le parent
 class ParentValidateChildDataAndLink(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
     serializer_class = ChildSerializer
     queryset = Child.objects.all()
     lookup_field = 'slug'
@@ -745,6 +757,7 @@ class ParentValidateChildDataAndLink(generics.RetrieveAPIView):
 
 # Va retourner les autres possible relation que l'enfant peux avoir apres deja ses quelque relation sur familyMember
 class ChildParentRelationship(generics.CreateAPIView):
+    permission_classes = [IsAuthenticated]
     serializer_class = FamilyMemberSerializer
     queryset = FamilyMember.objects.all()
     
@@ -802,6 +815,7 @@ class ChildParentRelationship(generics.CreateAPIView):
     
 # Cette views vas juste nous permetre de retourner les parent d'un enfant
 class GetAllParentForthiChild(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
     serializer_class = FamilyMemberSerializer
     queryset = FamilyMember.objects.all()
 
