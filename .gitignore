@@ -3,6 +3,9 @@
 .env
 .pytest_cache/
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
 
 # Fichiers générés automatiquement
 /staticfiles/
