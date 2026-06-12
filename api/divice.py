@@ -540,3 +540,57 @@ class ReleaseParentToDevice(generics.CreateAPIView):
             "success": True,
             "code": 200
         }, status=status.HTTP_200_OK)
+        
+class AddDevicePhoto(generics.CreateAPIView):
+    serializer_class = DevicePhotoSerializer
+
+    def post(self, request, *args, **kwargs):
+        imei      = request.data.get('device')
+        timestamp = request.data.get('timestamp')
+        image     = request.FILES.get('image')
+
+        if not imei:
+            return Response({
+                "data": None,
+                "message": "IMEI du device requis",
+                "success": False,
+                "code": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if not image:
+            return Response({
+                "data": None,
+                "message": "Image requise",
+                "success": False,
+                "code": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            device = Device.objects.get(imei=imei)
+        except Device.DoesNotExist:
+            return Response({
+                "data": None,
+                "message": "Aucun device trouvé avec cet IMEI",
+                "success": False,
+                "code": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        photo = DevicePhoto.objects.create(
+            device=device,
+            image=image,
+            timestamp=timestamp or "",
+        )
+
+        return Response({
+            "data": {
+                "id": photo.pk,
+                "slug": str(photo.slug),
+                "device": device.pk,
+                "timestamp": photo.timestamp,
+                "captured_at": photo.captured_at,
+                "image_url": request.build_absolute_uri(photo.image.url),
+            },
+            "message": "Photo enregistrée avec succès",
+            "success": True,
+            "code": 201
+        }, status=status.HTTP_201_CREATED)
