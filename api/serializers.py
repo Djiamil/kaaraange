@@ -279,3 +279,8 @@ class AlertNotificationSerializerAlert(serializers.ModelSerializer):
     class Meta:
         model = AlertNotification
         fields = '__all__'
+        
+class DevicePhotoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DevicePhoto
+        fields = ['slug', 'device', 'image', 'timestamp', 'captured_at']

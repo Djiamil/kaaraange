@@ -83,6 +83,7 @@ urlpatterns = [
     path('device/family-numbers/', divice.FamilyNumberView.as_view(), name='device/family-numbers/'),
     path('geolocaliser_par_wifi_mozilla/', divice.GeolocaliserParWifiMozilla.as_view(), name='geolocaliser_par_wifi_mozilla'),
     path('device_parent_to_family_member/', divice.ReleaseParentToDevice.as_view(), name='device_parent_to_family_member'),
+    path('device/photo/', divice.AddDevicePhoto.as_view(), name='device-photo'),
     # Fin des url pour les divice 
     
     # Debut url utile et dashboard

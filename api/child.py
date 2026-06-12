@@ -536,7 +536,7 @@ class DailyTrajectoryView(generics.ListAPIView):
 
 # views pour ajouter les alergy de l'enfant
 class ChildAlergyApiViews(generics.RetrieveAPIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
     queryset = Allergy.objects.all()
     serializer_class = ChildAlergySerializer
 

@@ -498,5 +498,18 @@ class FamilyNumber(models.Model):
     def __str__(self):
         return f"{self.device.imei} - {self.name} ({self.serialnumber})"
     
+class DevicePhoto(models.Model):
+    slug = models.SlugField(default=uuid.uuid1, unique=True)
+    device = models.ForeignKey(Device, on_delete=models.CASCADE, related_name='photos')
+    image = models.ImageField(upload_to='device_photos/')
+    timestamp = models.CharField(max_length=20)  # timestamp brut du tracker ex: 260612230009
+    captured_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-captured_at']
+
+    def __str__(self):
+        return f"{self.device.imei} — {self.captured_at}"
+    
 # super admin kaaraange@gmail.com gthub prof edacy Darcia0001@gmail.com
 
