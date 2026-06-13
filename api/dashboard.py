@@ -12,6 +12,10 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from django.db.models.functions import TruncMonth
 import calendar
+from datetime import date
+
+from rest_framework.views import APIView
+
 
 
 
@@ -29,6 +33,7 @@ class AdminStatsView(generics.GenericAPIView):
             "security": get_security_stats(),
             "sms": get_sms_stats(),
             "alerts": get_alert_stats(),
+            "age_distribution": get_age_distribution_stats(),
             "meta": {
                 "generated_at": timezone.now()
             }
@@ -178,4 +183,65 @@ def get_alert_stats():
         ),
 
         "alerts_by_month": alerts_by_month
+    }
+    
+def get_age_distribution_stats():
+
+    intervals = {
+        "0-5": 0,
+        "6-8": 0,
+        "9-12": 0,
+        "13-15": 0,
+        "16-18": 0,
+    }
+
+    total = Child.objects.count()
+
+    if total == 0:
+        return {
+            "total_enfants": 0,
+            "repartition": []
+        }
+
+    today = date.today()
+
+    for child in Child.objects.all():
+
+        age = (
+            today.year
+            - child.date_de_naissance.year
+            - (
+                (today.month, today.day)
+                < (
+                    child.date_de_naissance.month,
+                    child.date_de_naissance.day
+                )
+            )
+        )
+
+        if 0 <= age <= 5:
+            intervals["0-5"] += 1
+
+        elif 6 <= age <= 8:
+            intervals["6-8"] += 1
+
+        elif 9 <= age <= 12:
+            intervals["9-12"] += 1
+
+        elif 13 <= age <= 15:
+            intervals["13-15"] += 1
+
+        elif 16 <= age <= 18:
+            intervals["16-18"] += 1
+
+    return {
+        "total_enfants": total,
+        "repartition": [
+            {
+                "interval": interval_name,
+                "count": count,
+                "percentage": round((count / total) * 100, 2)
+            }
+            for interval_name, count in intervals.items()
+        ]
     }
