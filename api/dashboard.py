@@ -34,6 +34,7 @@ class AdminStatsView(generics.GenericAPIView):
             "sms": get_sms_stats(),
             "alerts": get_alert_stats(),
             "age_distribution": get_age_distribution_stats(),
+            "weekly_registrations": get_weekly_registrations_stats(),
             "meta": {
                 "generated_at": timezone.now()
             }
@@ -243,5 +244,29 @@ def get_age_distribution_stats():
                 "percentage": round((count / total) * 100, 2)
             }
             for interval_name, count in intervals.items()
+        ]
+    }
+    
+def get_weekly_registrations_stats():
+    """
+    Liste des utilisateurs inscrits cette semaine.
+    """
+
+    start_date = timezone.now() - timedelta(days=7)
+
+    users = User.objects.filter(
+        created_at__gte=start_date
+    ).order_by('-created_at')
+
+    return {
+        "total": users.count(),
+        "users": [
+            {
+                "prenom": user.prenom,
+                "nom": user.nom,
+                "user_type": user.user_type,
+                "created_at": user.created_at.strftime("%d/%m/%Y")
+            }
+            for user in users
         ]
     }
