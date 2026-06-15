@@ -1,4 +1,6 @@
 from django.urls import path
+
+from api import tracker
 from . import views
 from . import parent
 from . import child
@@ -91,4 +93,15 @@ urlpatterns = [
     path('search_parent/',views.SearchUserForPhone.as_view(), name='search-parent'),
     path('fin_ser_to_exel/',parent.FindUserToExel.as_view(), name='fin_ser_to_exel'),
     # Fin url utile
+    
+    # url pour le tracker
+    path('device/<str:imei>/find/',     tracker.DeviceFind.as_view()),
+    path('device/<str:imei>/poweroff/', tracker.DevicePowerOff.as_view()),
+    path('device/<str:imei>/reset/',    tracker.DeviceReset.as_view()),
+    path('device/<str:imei>/sos/',      tracker.DeviceSetSOS.as_view()),
+    path('device/<str:imei>/call/',     tracker.DeviceCall.as_view()),
+    path('device/<str:imei>/schedule/', tracker.DeviceSchedule.as_view()),
+    path('device/<str:imei>/status/',   tracker.DeviceConnectionStatus.as_view()),
+    path('device/<str:imei>/timezone/', tracker.DeviceSetTimezone.as_view()),
+    # Fin des url pour le tracker
 ]
