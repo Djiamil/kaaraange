@@ -103,5 +103,6 @@ urlpatterns = [
     path('device/<str:imei>/schedule/', tracker.DeviceSchedule.as_view()),
     path('device/<str:imei>/status/',   tracker.DeviceConnectionStatus.as_view()),
     path('device/<str:imei>/timezone/', tracker.DeviceSetTimezone.as_view()),
+    path('devices/steps/', tracker.AddPedometerData.as_view()),
     # Fin des url pour le tracker
 ]
