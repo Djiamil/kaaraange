@@ -2,8 +2,10 @@ import requests
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework import generics
 
-from .models import Device
+
+from .models import Device, PedometerData
 
 TCP_SERVER = "http://127.0.0.1:9001"
 
@@ -281,3 +283,99 @@ class DeviceSetTimezone(APIView):
             "message": result.get("message", "Device non connecté"),
             "code": 404
         }, status=status.HTTP_404_NOT_FOUND)
+
+# =====================================================
+# PEDOMETER — active/désactive le podomètre
+# Le tracker envoie les pas dans chaque trame LK
+# =====================================================
+class DevicePedometer(APIView):
+    def post(self, request, imei):
+        device, error = get_device_or_error(imei)
+        if error:
+            return error
+
+        action     = request.data.get("action")        # "on" ou "off"
+        start_time = request.data.get("start", "00:00") # heure début
+        end_time   = request.data.get("end", "23:59")   # heure fin
+
+        if action not in ("on", "off"):
+            return Response({
+                "success": False,
+                "message": "action requis : 'on' ou 'off'",
+                "code": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        pedo_value = "0" if action == "on" else "1"
+
+        # Active/désactive le podomètres
+        r1 = send_tracker_command(imei, f"PEDO,{pedo_value}")
+
+        # Si activation, envoie aussi la plage horaire
+        r2 = {"success": True}
+        if action == "on":
+            r2 = send_tracker_command(
+                imei,
+                f"WALKTIME,{start_time}-{end_time},00:00-00:00,00:00-00:00"
+            )
+
+        if r1.get("success"):
+            return Response({
+                "success": True,
+                "message": f"Podomètre {'activé' if action == 'on' else 'désactivé'}",
+                "data": {
+                    "action": action,
+                    "start": start_time,
+                    "end": end_time
+                },
+                "code": 200
+            }, status=status.HTTP_200_OK)
+
+        return Response({
+            "success": False,
+            "message": r1.get("message", "Device non connecté"),
+            "code": 404
+        }, status=status.HTTP_404_NOT_FOUND)
+        
+class AddPedometerData(generics.CreateAPIView):
+    def post(self, request, *args, **kwargs):
+        imei  = request.data.get('device')
+        steps = request.data.get('steps')
+        rolls = request.data.get('rolls', 0)
+
+        if not imei:
+            return Response({
+                "data": None,
+                "message": "IMEI du device requis",
+                "success": False,
+                "code": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            device = Device.objects.get(imei=imei)
+        except Device.DoesNotExist:
+            return Response({
+                "data": None,
+                "message": "Aucun device trouvé avec cet IMEI",
+                "success": False,
+                "code": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        pedometer = PedometerData.objects.create(
+            device=device,
+            steps=steps or 0,
+            rolls=rolls or 0,
+        )
+
+        return Response({
+            "data": {
+                "id"         : pedometer.pk,
+                "slug"       : str(pedometer.slug),
+                "device"     : device.pk,
+                "steps"      : pedometer.steps,
+                "rolls"      : pedometer.rolls,
+                "recorded_at": pedometer.recorded_at,
+            },
+            "message": "Données podomètre enregistrées",
+            "success": True,
+            "code": 201
+        }, status=status.HTTP_201_CREATED)

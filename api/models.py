@@ -510,6 +510,19 @@ class DevicePhoto(models.Model):
 
     def __str__(self):
         return f"{self.device.imei} — {self.captured_at}"
-    
+
+
+class PedometerData(models.Model):
+    slug       = models.SlugField(default=uuid.uuid1, unique=True)
+    device     = models.ForeignKey(Device, on_delete=models.CASCADE, related_name='pedometer_data')
+    steps      = models.IntegerField(default=0)
+    rolls      = models.IntegerField(default=0)
+    recorded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-recorded_at']
+
+    def __str__(self):
+        return f"{self.device.imei} — {self.steps} steps ({self.recorded_at})"
 # super admin kaaraange@gmail.com gthub prof edacy Darcia0001@gmail.com
 
