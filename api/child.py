@@ -21,6 +21,10 @@ from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.permissions import IsAuthenticated
 from datetime import datetime, timedelta
 from django.utils.dateparse import parse_datetime
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
+from api.serializers_docs import *
+from safedelete.models import HARD_DELETE
+
 
 
 
@@ -833,3 +837,157 @@ class GetAllParentForthiChild(generics.ListAPIView):
             "access": True,
             "code": 200
         }, status=status.HTTP_200_OK)
+
+@extend_schema(
+
+    tags=["Child"],
+
+    summary="Supprimer un enfant",
+
+    description="""
+Permet au parent principal de supprimer définitivement un enfant.
+
+Règles métier :
+
+1. Vérifie l'existence du parent
+
+2. Vérifie l'existence de l'enfant
+
+3. Vérifie que le parent est le parent principal
+
+4. Supprime toutes les relations associées à l'enfant
+
+5. Supprime les alertes
+
+6. Supprime les points de trajet
+
+7. Supprime les périmètres de sécurité
+
+8. Supprime définitivement l'enfant
+""",
+
+    request=DeleteChildRequestSerializer,
+
+    responses={
+
+        200: DeleteChildSuccessSerializer,
+
+        400: ErrorSerializer,
+
+        403: ErrorSerializer,
+
+        404: ErrorSerializer,
+
+    }
+
+)
+class DeleteUserView(generics.DestroyAPIView):
+    """
+    Suppression d'un Child ou Device lié à un Parent principal
+    """
+
+    def delete(self, request, *args, **kwargs):
+
+        slug = kwargs.get('slug_child')
+        slug_parent = request.data.get('slug_parent')
+
+        if not slug_parent:
+            return Response({
+                "data": None,
+                "message": "Le slug du parent est requis",
+                "success": False,
+                "code": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # -----------------------
+        # Parent
+        # -----------------------
+        try:
+            parent = Parent.objects.get(slug=slug_parent)
+        except Parent.DoesNotExist:
+            return Response({
+                "data": None,
+                "message": "Parent introuvable",
+                "success": False,
+                "code": 404
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # ======================================================
+        # CAS 1 : CHILD
+        # ======================================================
+        child = Child.objects.filter(slug=slug).first()
+
+        if child:
+
+            first_family_member = (
+                FamilyMember.objects
+                .filter(child=child)
+                .order_by("id")
+                .first()
+            )
+
+            if not first_family_member or first_family_member.parent_id != parent.id:
+                return Response({
+                    "data": None,
+                    "message": "Vous n'êtes pas le parent principal de cet enfant",
+                    "success": False,
+                    "code": 403
+                }, status=status.HTTP_403_FORBIDDEN)
+
+            # suppression relations
+            FamilyMember.objects.filter(child=child).delete()
+            EmergencyAlert.objects.filter(child=child).delete()
+            PointTrajet.objects.filter(enfant=child).delete()
+            ChildWithPerimetreSecurite.objects.filter(child=child).delete()
+            child.delete(force_policy=HARD_DELETE)
+
+            return Response({
+                "data": None,
+                "message": "Enfant supprimé avec succès",
+                "success": True,
+                "code": 200
+            }, status=status.HTTP_200_OK)
+
+        # ======================================================
+        # CAS 2 : DEVICE
+        # ======================================================
+        device = Device.objects.filter(slug=slug).first()
+
+        if device:
+
+            first_family_member = (
+                FamilyMember.objects
+                .filter(device=device)
+                .order_by("id")
+                .first()
+            )
+
+            if not first_family_member or first_family_member.parent_id != parent.id:
+                return Response({
+                    "data": None,
+                    "message": "Vous n'êtes pas le parent principal de cet appareil",
+                    "success": False,
+                    "code": 403
+                }, status=status.HTTP_403_FORBIDDEN)
+
+            FamilyMember.objects.filter(device=device).delete()
+            EmergencyAlert.objects.filter(device=device).delete()
+            ChildWithPerimetreSecurite.objects.filter(device=device).delete()
+            device.delete(force_policy=HARD_DELETE)
+
+            return Response({
+                "data": None,
+                "message": "Appareil supprimé avec succès",
+                "success": True,
+                "code": 200
+            }, status=status.HTTP_200_OK)
+
+        # ======================================================
+        # CAS INCONNU
+        # ======================================================
+        return Response({
+            "data": None,
+            "message": "Aucun Child ou Device trouvé avec ce slug",
+            "success": False,
+            "code": 404
+        }, status=status.HTTP_404_NOT_FOUND)
