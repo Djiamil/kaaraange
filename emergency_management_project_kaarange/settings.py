@@ -50,6 +50,8 @@ INSTALLED_APPS = [
     # Autres applications...
     'rest_framework',
     'rest_framework_simplejwt',
+    'drf_spectacular',
+    'drf_spectacular_sidecar',
     'api',
 ]
 
@@ -168,6 +170,7 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.TokenAuthentication',
         'rest_framework_simplejwt.authentication.JWTAuthentication', 
     ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 ENCRYPTION_KEY = b'4mJ9KkY3vH7wQp2Lx8NcTzR5UvB1aSdEfGhIjKlMnO0='
 
@@ -185,3 +188,33 @@ CORS_ALLOW_HEADERS = [
     "content-type",
     "authorization",
 ]
+
+SPECTACULAR_SETTINGS = {
+
+    'TITLE': 'Kaaraange Kids API',
+
+    'DESCRIPTION': '''
+    API de gestion de Kaaraange Kids.
+
+    Modules :
+
+    - Authentification
+    - Parent
+    - Enfant
+    - Géolocalisation
+    - Alertes
+    - Tracker IoT
+    - Device
+    - Dashboard
+    ''',
+
+    'VERSION': '1.0.0',
+
+    'SERVE_INCLUDE_SCHEMA': False,
+
+    'SWAGGER_UI_SETTINGS': {
+        'deepLinking': True,
+    },
+
+    'COMPONENT_SPLIT_REQUEST': True,
+}

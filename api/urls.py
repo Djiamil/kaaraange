@@ -71,6 +71,7 @@ urlpatterns = [
     path('parent_validate_child_subscriber/<slug:slug>/', child.ParentValidateChildDataAndLink.as_view(), name='parent_validate_child_subscriber'),
     path('child_parent_relationship/<slug:slug>/', child.ChildParentRelationship.as_view(), name='child_parent_relationship'),
     path('parent_list/<slug:slug>/', child.GetAllParentForthiChild.as_view(), name='parent_list'),
+    path('delete_child/<slug:slug_child>/', child.DeleteUserView.as_view(), name='delete_child'),
     # fin des routes qui conserne l'enfant  
 
     # les url sur le model qui link le parent au child

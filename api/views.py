@@ -19,6 +19,9 @@ from django.http import JsonResponse
 from rest_framework.views import APIView
 from safedelete.models import HARD_DELETE
 from firebase_admin import credentials, messaging 
+from drf_spectacular.utils import extend_schema
+from .serializers_docs import *
+
 
 
 
@@ -46,6 +49,25 @@ class UserApiViews(generics.ListCreateAPIView):
         return Response(serializer.data)
     
 # La views de connexion des utilisateur
+@extend_schema(
+    tags=["Authentication"],
+    summary="Connexion utilisateur",
+    description="""
+Connexion utilisateur avec plusieurs modes :
+
+- Email + password classique
+- Login social (Google / Facebook / Apple)
+- Auto-création utilisateur si nécessaire
+
+Retourne un JWT token + informations utilisateur.
+""",
+    request=LoginRequestSerializer,
+    responses={
+        200: LoginResponseSerializer,
+        400: ErrorSerializer,
+        401: ErrorSerializer,
+    }
+)
 class LoginViews(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
 
@@ -103,6 +125,20 @@ class LoginViews(TokenObtainPairView):
             return Response({'data': None, 'message': 'Invalid email or registration method', 'success': False, 'code': 400}, status=status.HTTP_400_BAD_REQUEST)
 
 # connexiion pr numero de telephone
+@extend_schema(
+    tags=["Authentication"],
+    summary="Connexion par numéro de téléphone",
+    description="""
+Connexion utilisateur via numéro de téléphone et mot de passe.
+
+Retourne un JWT token + informations utilisateur.
+""",
+    request=PhoneLoginRequestSerializer,
+    responses={
+        200: PhoneLoginResponseSerializer,
+        400: ErrorSerializer,
+    }
+)
 class PhoneLoginView(APIView):
     def post(self, request, *args, **kwargs):
         phone_number = request.data.get('phone_number', '')
@@ -194,6 +230,22 @@ class GetQRCode(generics.RetrieveAPIView):
             return HttpResponse("Le QR code n'existe pas pour cet objet.", status=404)
 
 # views pour envoyer le code otp de verification du nemero pour les mot de passe oublier
+
+@extend_schema(
+    tags=["Authentication"],
+    summary="Envoi OTP pour changement de mot de passe",
+    description="""
+Envoie un code OTP par SMS au numéro de téléphone de l'utilisateur.
+
+Ce code est utilisé pour réinitialiser le mot de passe.
+""",
+    request=SendOtpRequestSerializer,
+    responses={
+        200: SendOtpResponseSerializer,
+        400: ErrorSerializer,
+        404: ErrorSerializer,
+    }
+)
 class SendOtpUserChangePassword(generics.GenericAPIView):
     def post(self, request, *args, **kwargs):
         to_phone_number = request.data.get('telephone')
@@ -230,6 +282,23 @@ class SendOtpUserChangePassword(generics.GenericAPIView):
                 }, status=status.HTTP_200_OK)
 
 # views pour la confirmation de l'otp pour la modificatiion du password
+@extend_schema(
+    tags=["Authentication"],
+    summary="Vérification du code OTP",
+    description="""
+Vérifie le code OTP envoyé par SMS.
+
+Si le code est valide :
+- retourne les informations utilisateur
+- permet de passer à l'étape changement de mot de passe
+""",
+    request=ConfirmOtpRequestSerializer,
+    responses={
+        200: ConfirmOtpResponseSerializer,
+        400: ErrorSerializer,
+        404: ErrorSerializer,
+    }
+)
 class ConfirmOtpUserForPassword(generics.GenericAPIView):
     serializer_class = UserSerializer
 
@@ -265,6 +334,24 @@ class ConfirmOtpUserForPassword(generics.GenericAPIView):
                 },status=status.HTTP_201_CREATED)
 
 # views pour la modification du password de l'utlisateur
+@extend_schema(
+    tags=["Authentication"],
+    summary="Changement de mot de passe",
+    description="""
+Permet à un utilisateur de changer son mot de passe après validation OTP.
+
+Étapes :
+1. Vérification slug utilisateur
+2. Vérification password1 == password2
+3. Hash et mise à jour du mot de passe
+""",
+    request=ChangePasswordRequestSerializer,
+    responses={
+        200: ChangePasswordResponseSerializer,
+        400: ErrorSerializer,
+        404: ErrorSerializer,
+    }
+)
 class ChangePasswordUser(generics.GenericAPIView):
     serializer_class = UserSerializer
 
@@ -320,6 +407,26 @@ class listeAlert(generics.GenericAPIView):
 
 
 # Permet de renvoyer le code otp si l'utilisateur s'inscrie dabord et qu'il n'a pas reçu de code otp
+@extend_schema(
+    tags=["Authentication"],
+    summary="Renvoyer OTP d'activation de compte",
+    description="""
+Permet de renvoyer un nouveau code OTP à un utilisateur en attente d'activation.
+
+Étapes :
+1. Vérifie le numéro de téléphone
+2. Récupère le PendingUser
+3. Génère un nouveau OTP
+4. Met à jour le dernier OTP existant
+5. Envoie le SMS
+""",
+    request=ResendOtpRequestSerializer,
+    responses={
+        200: ResendOtpResponseSerializer,
+        400: ErrorSerializer,
+        404: ErrorSerializer,
+    }
+)
 class sendBackOtp(generics.GenericAPIView):
     def post(self, request, *args, **kwargs):
         to_phone_number = request.data.get('telephone')
@@ -367,6 +474,25 @@ class sendBackOtp(generics.GenericAPIView):
 
 
 # Cette views vas juste nous permetre d'envoyer des notification au utilisateur via firedabase
+@extend_schema(
+    tags=["Notification"],
+    summary="Envoyer une notification push à un utilisateur",
+    description="""
+Envoie une notification push via Firebase Cloud Messaging (FCM).
+
+- Si l'utilisateur a un token FCM → notification push
+- Sinon fallback possible SMS (désactivé actuellement)
+
+Types supportés :
+- Chat notification
+""",
+    request=SendNotificationRequestSerializer,
+    responses={
+        200: SendNotificationResponseSerializer,
+        400: ErrorSerializer,
+        404: ErrorSerializer,
+    }
+)
 class sendNotificationOnly(generics.GenericAPIView):
     serializer_class = AlertNotificationSerializer
     queryset = AlertNotification.objects.all()
@@ -423,6 +549,29 @@ class sendNotificationOnly(generics.GenericAPIView):
         else:
             return Response({"data": None, "message": "Aucun moyen de contact trouvé pour cet utilisateur", "success": False, "code": 400},
                             status=status.HTTP_400_BAD_REQUEST)
+@extend_schema(
+    tags=["Authentication"],
+    summary="Supprimer un utilisateur",
+    description="""
+Supprime définitivement un utilisateur à partir de son email ou de son numéro de téléphone.
+
+Comportement :
+
+- recherche l'utilisateur
+- si l'utilisateur est un parent :
+    - supprime les enfants associés
+    - supprime les relations FamilyMember
+- supprime ensuite le compte utilisateur
+
+⚠️ Cette suppression est définitive.
+""",
+    request=DeleteUserRequestSerializer,
+    responses={
+        200: DeleteUserResponseSerializer,
+        400: ErrorSerializer,
+        404: ErrorSerializer,
+    }
+)
 class DeleteUserView(generics.DestroyAPIView):
     def delete(self, request, *args, **kwargs):
         phone_or_email = request.data.get("phone_or_email")
@@ -456,6 +605,21 @@ class DeleteUserView(generics.DestroyAPIView):
             status=status.HTTP_200_OK,
         )
 
+@extend_schema(
+    tags=["Authentication"],
+    summary="Rechercher un utilisateur par téléphone",
+    description="""
+Recherche un ou plusieurs utilisateurs à partir d'un numéro de téléphone.
+
+Retourne les informations des utilisateurs correspondants.
+""",
+    request=SearchParentRequestSerializer,
+    responses={
+        200: SearchParentResponseSerializer,
+        400: ErrorSerializer,
+        404: ErrorSerializer,
+    }
+)
 class SearchUserForPhone(APIView):
 
     def post(self, request, *args, **kwargs):
