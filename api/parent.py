@@ -23,6 +23,8 @@ from rest_framework.views import APIView
 import pandas as pd
 from cryptography.fernet import Fernet
 from django.conf import settings
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
+from api.serializers_docs import *
 
 cipher = Fernet(settings.ENCRYPTION_KEY)
 
@@ -33,6 +35,41 @@ cipher = Fernet(settings.ENCRYPTION_KEY)
 
 
 # la views pour creer le parent temporelement en attendant qu'il valide otp
+@extend_schema(
+
+    tags=["Parent"],
+
+    summary="Inscription d'un parent",
+
+    description="""
+Permet d'inscrire un nouveau parent.
+
+Étapes :
+
+1. Vérifie l'unicité de l'email
+
+2. Vérifie l'unicité du numéro de téléphone
+
+3. Crée un PendingUser
+
+4. Génère un OTP
+
+5. Envoie un SMS de validation
+
+6. Retourne les informations du compte en attente de validation
+""",
+
+    request=ParentRegistrationRequestSerializer,
+
+    responses={
+
+        201: ParentRegistrationResponseSerializer,
+
+        400: ErrorSerializer,
+
+    }
+
+)
 class parentRegister(generics.CreateAPIView):
     queryset = PendingUser.objects.all()
     serializer_class = PendingUserGetSerializer
@@ -149,6 +186,39 @@ class UpdateParent(generics.UpdateAPIView):
 
 
 # confimation de l'inscription du parent apres le saisi de l'otp
+@extend_schema(
+
+    tags=["Parent"],
+
+    summary="Confirmer l'inscription d'un parent",
+
+    description="""
+Valide le code OTP envoyé par SMS.
+
+Étapes :
+
+1. Vérifie le code OTP
+
+2. Récupère le PendingUser associé
+
+3. Crée le compte Parent définitif
+
+4. Supprime le PendingUser
+
+5. Supprime l'OTP utilisé
+""",
+
+    request=ConfirmParentRegistrationRequestSerializer,
+
+    responses={
+
+        201: ConfirmParentRegistrationResponseSerializer,
+
+        400: ErrorSerializer,
+
+    }
+
+)
 class ConfirmRegistration(generics.CreateAPIView):
     def post(self, request):
         otp_code = request.data.get('otp_code')
@@ -261,6 +331,35 @@ class ListeUserActifInactif(generics.GenericAPIView):
         }, status=status.HTTP_200_OK)
 
 # Cette views nous permetra de lister tous  les information qui concerne le parent
+@extend_schema(
+
+    tags=["Parent"],
+
+    summary="Dashboard du parent",
+
+    description="""
+Retourne les informations du parent ainsi que les enfants et appareils qui lui sont associés.
+
+Informations retournées :
+
+- Informations du parent
+
+- Enfants liés
+
+- Appareils liés
+
+Si aucun enfant n'est associé au parent, une réponse vide est retournée.
+""",
+
+    responses={
+
+        200: ParentDashboardResponseSerializer,
+
+        404: ErrorSerializer,
+
+    }
+
+)
 class ParentDashbord(generics.RetrieveAPIView):
     queryset = Parent.objects.all()
     serializer_class = ParentSerializer
@@ -300,6 +399,34 @@ class ParentDashbord(generics.RetrieveAPIView):
         }, status=status.HTTP_200_OK)
     
 # views pour permetre au parent de pouvoir ajouter des numero d'urgence au parent
+@extend_schema(
+
+    tags=["Parent"],
+
+    summary="Gestion des contacts d'urgence",
+
+    description="""
+Permet de gérer les contacts d'urgence d'un parent.
+
+GET :
+- Retourne la liste des contacts d'urgence associés au parent
+
+POST :
+- Ajoute un nouveau contact d'urgence
+- Envoie automatiquement un SMS de notification au contact ajouté
+""",
+
+    request=EmergencyContactRequestSerializer,
+
+    responses={
+
+        200: EmergencyContactResponseSerializer,
+
+        400: ErrorSerializer,
+
+    }
+
+)
 class ParentAddEmergencyContactForChildAlert(generics.RetrieveAPIView):
     queryset = EmergencyContact.objects.all()
     serializer_class = EmergencyContactSerializer
@@ -335,6 +462,47 @@ class ParentAddEmergencyContactForChildAlert(generics.RetrieveAPIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 # views pour alerter les membre de famille d'un enfant et envoyer la notification via firebase
+@extend_schema(
+
+    tags=["Alert System"],
+
+    summary="Envoyer une alerte d'urgence pour un enfant",
+
+    description="""
+Déclenche une alerte d'urgence depuis un enfant ou un device.
+
+🔁 Fonctionnement :
+
+1. Vérifie si le slug correspond à un Device
+   - Sinon tente de trouver un Child
+
+2. Crée une EmergencyAlert
+
+3. Récupère tous les FamilyMembers liés
+
+4. Récupère les EmergencyContacts associés
+
+5. Envoie :
+   - Notification push FCM aux parents
+   - SMS aux contacts d'urgence
+   - Enregistre les AlertNotification
+
+6. Déclenche une notification globale famille
+""",
+
+    request=SendChildAlertRequestSerializer,
+
+    responses={
+
+        201: SendChildAlertResponseSerializer,
+
+        404: ErrorSerializer,
+
+        400: ErrorSerializer,
+
+    }
+
+)
 class SendAlertAllEmergenctContactForParentToChild(generics.RetrieveAPIView):
         queryset = EmergencyAlert.objects.all()
         serializer_class = EmergencyAlertSerializer
