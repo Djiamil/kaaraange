@@ -25,6 +25,8 @@ from cryptography.fernet import Fernet
 from django.conf import settings
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
 from api.serializers_docs import *
+from rest_framework_simplejwt.tokens import AccessToken
+
 
 cipher = Fernet(settings.ENCRYPTION_KEY)
 
@@ -206,9 +208,13 @@ Valide le code OTP envoyé par SMS.
 4. Supprime le PendingUser
 
 5. Supprime l'OTP utilisé
+
+6. Authentifie automatiquement l'utilisateur
+
+7. Génère un token d'accès et retourne les informations du compte
 """,
 
-    request=ConfirmParentRegistrationRequestSerializer,
+    request=ConfirmParentRegistrationDataSerializer,
 
     responses={
 
@@ -259,8 +265,15 @@ class ConfirmRegistration(generics.CreateAPIView):
             )
         pending_user.delete()
         otp.delete()
+        user = authenticate(request, phone_number=user.phone_number, password=pending_user.password)
+        if user is not None:
+            access_token = AccessToken.for_user(user)
+            serializer = UserSerializer(user)
         return Response({
-            "data" : None,
+            'data': {
+                'token': str(access_token),
+                'user': serializer.data,
+            },
             "message": 'Compte utilisateur créé avec succès',
             "success" : True,
             "code" : 200,
