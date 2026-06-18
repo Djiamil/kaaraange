@@ -1,6 +1,7 @@
 import random
 import string
 from django.conf import settings
+from api import child
 from api.models import *
 import requests
 from rest_framework.response import Response
@@ -155,6 +156,9 @@ def verifier_enfant_dans_zone(slug, lat_enfant, lon_enfant,adresse):
 
         # Vérifier si la distance dépasse le rayon du périmètre de sécurité
         if distance_enfant_point <= rayon:
+            child = Child.objects.filter(slug=slug).first()
+            if child.hors_zone:
+                envoyer_retour_zone(child, lat_enfant, lon_enfant, adresse)
             return Response({
                 'enfant_dans_zone': True,
                 'distance': distance_enfant_point,
@@ -169,6 +173,10 @@ def verifier_enfant_dans_zone(slug, lat_enfant, lon_enfant,adresse):
 
                 # Récupérer la dernière alerte pour l'enfant
                 child_alert = EmergencyAlert.objects.filter(child__slug=slug,alert_type="danger").last()
+                if not child.hors_zone:
+                    child.hors_zone = True
+                    child.date_sortie_zone = timezone.now()
+                    child.save()
                 if child_alert:
                 # Si l'enfant a été hors de la zone pendant plus de 5 minutes
                     if child_alert and timezone.now() - child_alert.datetime_localisation >= timedelta(minutes=5):
@@ -280,6 +288,9 @@ def verifier_enfant_dans_zone_device(slug, lat_enfant, lon_enfant,adresse):
 
         # Vérifier si la distance dépasse le rayon du périmètre de sécurité
         if distance_enfant_point <= rayon:
+            device = Device.objects.filter(slug=slug).first()
+            if device.hors_zone:
+                    envoyer_retour_zone_device(device, lat_enfant, lon_enfant, adresse)
             return Response({
                 'enfant_dans_zone': True,
                 'distance': distance_enfant_point,
@@ -295,6 +306,10 @@ def verifier_enfant_dans_zone_device(slug, lat_enfant, lon_enfant,adresse):
 
                 # Récupérer la dernière alerte pour l'enfant
                 child_alert = EmergencyAlert.objects.filter(device__slug=slug,alert_type="danger").last()
+                if not device.hors_zone:
+                    device.hors_zone = True
+                    device.date_sortie_zone = timezone.now()
+                    device.save()
                 if child_alert:
                 # Si l'enfant a été hors de la zone pendant plus de 5 minutes
                     if child_alert and timezone.now() - child_alert.datetime_localisation >= timedelta(minutes=5):
@@ -412,4 +427,100 @@ def check_user_exists(email=None, phone_number=None):
                 "code": 400
             }
 
+    return None
+
+def envoyer_retour_zone(child, lat, lon, adresse):
+    print("Envoi de la notification de retour en zone pour l'enfant :", child.prenom)
+    text = f"Bonne nouvelle : votre enfant {child.prenom} est revenu dans la zone de sécurité."
+
+    alert = EmergencyAlert.objects.create(
+        child=child,
+        alert_type="info",
+        comment=text,
+        latitude=lat,
+        longitude=lon,
+        adresse=adresse
+    )
+
+    family_members = FamilyMember.objects.filter(child=child)
+    emergency_contacts = []
+
+    for family_member in family_members:
+        parent = family_member.parent
+
+        if parent:
+            contacts = EmergencyContact.objects.filter(parent=parent)
+            emergency_contacts.extend(contacts)
+
+            if parent.fcm_token:
+                try:
+                    send_simple_notification(
+                        parent.fcm_token,
+                        text,
+                        "success_sound"
+                    )
+                except Exception as e:
+                    print(f"Erreur notification retour: {e}")
+
+            AlertNotification.objects.create(
+                alert=alert,
+                type_notification="alerte",
+                parent=parent
+            )
+
+    for contact in emergency_contacts:
+        send_sms(contact.phone_number, text)
+
+    # reset état enfant
+    child.hors_zone = False
+    child.date_sortie_zone = None
+    child.save()
+    return None
+
+def envoyer_retour_zone_device(device, lat, lon, adresse):
+    print("Envoi de la notification de retour en zone pour l'enfant :", device.child.prenom)
+    text = f"Bonne nouvelle : votre enfant {device.child.prenom} est revenu dans la zone de sécurité."
+
+    alert = EmergencyAlert.objects.create(
+        child=device,
+        alert_type="info",
+        comment=text,
+        latitude=lat,
+        longitude=lon,
+        adresse=adresse
+    )
+
+    family_members = FamilyMember.objects.filter(child=device)
+    emergency_contacts = []
+
+    for family_member in family_members:
+        parent = family_member.parent
+
+        if parent:
+            contacts = EmergencyContact.objects.filter(parent=parent)
+            emergency_contacts.extend(contacts)
+
+            if parent.fcm_token:
+                try:
+                    send_simple_notification(
+                        parent.fcm_token,
+                        text,
+                        "success_sound"
+                    )
+                except Exception as e:
+                    print(f"Erreur notification retour: {e}")
+
+            AlertNotification.objects.create(
+                alert=alert,
+                type_notification="alerte",
+                parent=parent
+            )
+
+    for contact in emergency_contacts:
+        send_sms(contact.phone_number, text)
+
+    # reset état enfant
+    device.device.hors_zone = False
+    device.device.date_sortie_zone = None
+    device.save()
     return None

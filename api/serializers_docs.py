@@ -1,4 +1,5 @@
 from api.models import *
+from api.serializers import UserSerializer
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -130,15 +131,16 @@ class ParentRegistrationResponseSerializer(serializers.Serializer):
     success = serializers.BooleanField()
 
     code = serializers.IntegerField()
-class ConfirmParentRegistrationRequestSerializer(serializers.Serializer):
+class ConfirmParentRegistrationDataSerializer(serializers.Serializer):
 
-    otp_code = serializers.CharField()
+    token = serializers.CharField()
+
+    user = UserSerializer()
+
+
 class ConfirmParentRegistrationResponseSerializer(serializers.Serializer):
 
-    data = serializers.CharField(
-        allow_null=True,
-        required=False
-    )
+    data = ConfirmParentRegistrationDataSerializer()
 
     message = serializers.CharField()
 

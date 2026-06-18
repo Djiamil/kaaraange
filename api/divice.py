@@ -461,11 +461,19 @@ class ReleaseParentToDevice(generics.CreateAPIView):
             return self.handle_new_parent_request(device, slug_parent, relation, slug, request)
 
         # Créer le lien famille
-        family_member = FamilyMember.objects.create(
+        family_member, created = FamilyMember.objects.get_or_create(
             relation=relation,
             parent=parent,
             device=device
         )
+            # Ajouter le parent aux contacts d'urgence
+        if created and not EmergencyContact.objects.filter(parent=parent).exists():
+            EmergencyContact.objects.create(
+                parent=parent,
+                phone_number=parent.phone_number,
+                relationship=relation,
+                name=f"{parent.prenom} {parent.nom}"
+            )
 
         # Mettre à jour les infos du device
         device.nom = nom
@@ -493,6 +501,14 @@ class ReleaseParentToDevice(generics.CreateAPIView):
     def handle_new_parent_request(self, device, slug_parent, relation, slug, request):
         """Envoyer une demande de co-parenting au parent principal."""
         exists = FamilyMember.objects.filter(parent__slug=slug_parent, device__slug=slug).exists()
+        demande_exist = Demande.objects.filter(enfant=device, parent__slug=slug_parent).exists()
+        if demande_exist:
+            return Response({
+                "data": None,
+                "message": "Vous avez déjà envoyé une demande de co-parenting pour cet enfant.",
+                "access": False,
+                "code": "400"
+            }, status=status.HTTP_400_BAD_REQUEST)
         if exists:
             return Response({
                 "data": None,
@@ -512,7 +528,7 @@ class ReleaseParentToDevice(generics.CreateAPIView):
 
         first_family_member = FamilyMember.objects.filter(device=device).order_by('created_at').first()
 
-        comment = f"Un nouveau parent souhaite ajouter {device.prenom} {device.nom}."
+        comment = f"Un nouveau parent {parent.prenom} {parent.nom} souhaite ajouter {device.prenom} {device.nom}."
         notification = AlertNotification.objects.create(type_notification="demande", parent=first_family_member.parent, comment=comment)
         Demande.objects.create(
             device=device,

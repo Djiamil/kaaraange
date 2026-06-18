@@ -115,6 +115,12 @@ class Child(User):
     numeros_urgences = models.TextField()
     ecole = models.CharField(max_length=100, blank=True, null=True)
     battery_level = models.IntegerField(default=100, help_text="Niveau de batterie en pourcentage (0-100)")
+    hors_zone = models.BooleanField(default=False)
+
+    date_sortie_zone = models.DateTimeField(
+        null=True,
+        blank=True
+    )
 
 
 # le model ParentChildLink nous permetrat maintenant juste de relier un enfant a un qrcode
@@ -160,6 +166,12 @@ class Device(models.Model):
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
     fcm_token = models.CharField(max_length=255, null=True, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
+    hors_zone = models.BooleanField(default=False)
+
+    date_sortie_zone = models.DateTimeField(
+        null=True,
+        blank=True
+    )
 
     def __str__(self):
         return f"{self.model_name} ({self.imei})"

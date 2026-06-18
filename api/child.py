@@ -698,6 +698,14 @@ class ParentValidateChildDataAndLink(generics.RetrieveAPIView):
     def handle_new_parent_request(self, child, slug_parent, relation, slug, request):
         """Envoyer une demande de co-parenting au parent principal."""
         exists = FamilyMember.objects.filter(parent__slug=slug_parent, child__slug=slug).exists()
+        demande_exist = Demande.objects.filter(enfant=child, parent__slug=slug_parent).exists()
+        if demande_exist:
+            return Response({
+                "data": None,
+                "message": "Vous avez déjà envoyé une demande de co-parenting pour cet enfant.",
+                "access": False,
+                "code": "400"
+            }, status=status.HTTP_400_BAD_REQUEST)
         if exists:
             return Response({
                 "data": None,
@@ -901,7 +909,7 @@ class DeleteUserView(generics.DestroyAPIView):
 
         # -----------------------
         # Parent
-        # -----------------------
+        # ----------------------- 
         try:
             parent = Parent.objects.get(slug=slug_parent)
         except Parent.DoesNotExist:
