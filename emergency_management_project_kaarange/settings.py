@@ -178,10 +178,12 @@ ENCRYPTION_KEY = b'4mJ9KkY3vH7wQp2Lx8NcTzR5UvB1aSdEfGhIjKlMnO0='
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
     "http://3.84.229.155:5173",
+    "https://backoffice.kaaraange.org",
 ]
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
+    "https://backoffice.kaaraange.org",
 ]
 
 CORS_ALLOW_HEADERS = [
