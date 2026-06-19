@@ -931,9 +931,9 @@ class ParentAcceptedOrDismissRequest(APIView):
             if demande.parent.fcm_token :
                 token =demande.parent.fcm_token
                 if demande.enfant :
-                    text = f"Bonne nouvelle ! Votre demande pour devenir co-parent de l'enfant  {demande.enfant.prenom} {demande.enfant.nom} a été acceptée par {demande.parent.prenom} {demande.parent.nom}.Ensemble, vous construisez un environnement plus sûr pour cet enfant."
+                    text = f"Bonne nouvelle ! Votre demande pour devenir co-parent de l'enfant  {demande.enfant.prenom} {demande.enfant.nom} a été acceptée par {demande.parent_recepteur.prenom} {demande.parent_recepteur.nom}.Ensemble, vous construisez un environnement plus sûr pour cet enfant."
                 elif demande.device :
-                    text = f"Bonne nouvelle ! Votre demande pour devenir co-parent de l'enfant  {demande.device.prenom} {demande.device.nom} a été acceptée par {demande.parent.prenom} {demande.parent.nom}.Ensemble, vous construisez un environnement plus sûr pour cet enfant."
+                    text = f"Bonne nouvelle ! Votre demande pour devenir co-parent de l'enfant  {demande.device.prenom} {demande.device.nom} a été acceptée par {demande.parent_recepteur.prenom} {demande.parent_recepteur.nom}.Ensemble, vous construisez un environnement plus sûr pour cet enfant."
                 try :
                     send_simple_notification(token,text)
                 except Exception as e:  # Capturer toutes les exceptions
@@ -941,9 +941,9 @@ class ParentAcceptedOrDismissRequest(APIView):
             if demande.parent.phone_number:
                 phone_number = demande.parent.phone_number
                 if demande.enfant :
-                    text = f"Bonne nouvelle ! Votre demande pour devenir co-parent de l'enfant  {demande.enfant.prenom} {demande.enfant.nom} a été acceptée par {demande.parent.prenom} {demande.parent.nom}.Ensemble, vous construisez un environnement plus sûr pour cet enfant."
+                    text = f"Bonne nouvelle ! Votre demande pour devenir co-parent de l'enfant  {demande.enfant.prenom} {demande.enfant.nom} a été acceptée par {demande.parent_recepteur.prenom} {demande.parent_recepteur.nom}.Ensemble, vous construisez un environnement plus sûr pour cet enfant."
                 elif demande.device :   
-                    text = f"Bonne nouvelle ! Votre demande pour devenir co-parent de l'enfant  {demande.device.prenom} {demande.device.nom} a été acceptée par {demande.parent.prenom} {demande.parent.nom}.Ensemble, vous construisez un environnement plus sûr pour cet enfant."
+                    text = f"Bonne nouvelle ! Votre demande pour devenir co-parent de l'enfant  {demande.device.prenom} {demande.device.nom} a été acceptée par {demande.parent_recepteur.prenom} {demande.parent_recepteur.nom}.Ensemble, vous construisez un environnement plus sûr pour cet enfant."
                 send_sms(phone_number, text)
             serializer = DemandeSerializer(demande)
             return Response({"data": serializer.data, "message" : "Demande accepté avec succées", "status" : True , "code" : 200},status=status.HTTP_200_OK)
@@ -958,9 +958,9 @@ class ParentAcceptedOrDismissRequest(APIView):
             if demande.parent.fcm_token :
                 token =demande.parent.fcm_token
                 if demande.enfant :
-                    text = f"Votre demande pour devenir co-parent de l'enfant    {demande.enfant.prenom} {demande.enfant.nom} a été refusée par {demande.parent.prenom} {demande.parent.nom}.Nous vous encourageons à communiquer avec le parent principal pour en discuter."
+                    text = f"Votre demande pour devenir co-parent de l'enfant    {demande.enfant.prenom} {demande.enfant.nom} a été refusée par {demande.parent_recepteur.prenom} {demande.parent_recepteur.nom}.Nous vous encourageons à communiquer avec le parent principal pour en discuter."
                 elif demande.device :   
-                    text = f"Votre demande pour devenir co-parent de l'enfant    {demande.device.prenom} {demande.device.nom} a été refusée par {demande.parent.prenom} {demande.parent.nom}.Nous vous encourageons à communiquer avec le parent principal pour en discuter."
+                    text = f"Votre demande pour devenir co-parent de l'enfant    {demande.device.prenom} {demande.device.nom} a été refusée par {demande.parent_recepteur.prenom} {demande.parent_recepteur.nom}.Nous vous encourageons à communiquer avec le parent principal pour en discuter."
                 try :
                     send_simple_notification(token,text)
                 except Exception as e:  # Capturer toutes les exceptions
@@ -968,9 +968,9 @@ class ParentAcceptedOrDismissRequest(APIView):
             if demande.parent.phone_number:
                 phone_number = demande.parent.phone_number
                 if demande.enfant :
-                    text = f"Votre demande pour devenir co-parent de l'enfant    {demande.enfant.prenom} {demande.enfant.nom} a été refusée par {demande.parent.prenom} {demande.parent.nom}.Nous vous encourageons à communiquer avec le parent principal pour en discuter."
+                    text = f"Votre demande pour devenir co-parent de l'enfant    {demande.enfant.prenom} {demande.enfant.nom} a été refusée par {demande.parent_recepteur.prenom} {demande.parent_recepteur.nom}.Nous vous encourageons à communiquer avec le parent principal pour en discuter."
                 elif demande.device :   
-                    text = f"Votre demande pour devenir co-parent de l'enfant    {demande.device.prenom} {demande.device.nom} a été refusée par {demande.parent.prenom} {demande.parent.nom}.Nous vous encourageons à communiquer avec le parent principal pour en discuter."
+                    text = f"Votre demande pour devenir co-parent de l'enfant    {demande.device.prenom} {demande.device.nom} a été refusée par {demande.parent_recepteur.prenom} {demande.parent_recepteur.nom}.Nous vous encourageons à communiquer avec le parent principal pour en discuter."
                 send_sms(phone_number, text)
             serializer = DemandeSerializer(demande)
             return Response({"data" : serializer.data, "message" : "Demande rejété avec succées", "status" : True, "code" : 200}, status=status.HTTP_200_OK)
@@ -1150,13 +1150,33 @@ class ConnectChildSafetyPerimeter(generics.CreateAPIView):
                 },
                 status=status.HTTP_200_OK,
             )
-        # Désactiver tous les anciens périmètres de l'enfant
-        ChildWithPerimetreSecurite.objects.filter(child=child).update(is_active=False)
+        # Vérifier que l'enfant est bien dans la zone
+        verification = checChildIsInPerimetre(child_slug, perimetre)
+
+        if verification is not True:
+            return verification
+
+        # Désactiver les anciens périmètres
+        if child:
+            ChildWithPerimetreSecurite.objects.filter(child=child).update(is_active=False)
+
+        if device:
+            ChildWithPerimetreSecurite.objects.filter(device=device).update(is_active=False)
 
         # Activer ou créer l'association entre l'enfant et le périmètre
-        child_with_perimetre, created = ChildWithPerimetreSecurite.objects.update_or_create(
-            child=child,device=device, perimetre_securite=perimetre, defaults={"is_active": True}
-        )
+        if child:
+            child_with_perimetre, created = ChildWithPerimetreSecurite.objects.update_or_create(
+                child=child,
+                perimetre_securite=perimetre,
+                defaults={"is_active": True}
+            )
+
+        elif device:
+            child_with_perimetre, created = ChildWithPerimetreSecurite.objects.update_or_create(
+                device=device,
+                perimetre_securite=perimetre,
+                defaults={"is_active": True}
+            )
 
         message = "Périmètre de sécurité activé avec succès" if not created else "Périmètre de sécurité affecté avec succès"
         
@@ -1169,7 +1189,51 @@ class ConnectChildSafetyPerimeter(generics.CreateAPIView):
             },
             status=status.HTTP_200_OK if not created else status.HTTP_201_CREATED,
         )
-    
+def checChildIsInPerimetre(child_slug, perimetre):
+
+    # Chercher l'enfant ou l'appareil
+    child = Child.objects.filter(slug=child_slug).first()
+    device = Device.objects.filter(slug=child_slug).first()
+
+    if child:
+        location = Location.objects.filter(enfant=child).last()
+
+    elif device:
+        location = Location.objects.filter(device=device).last()
+
+    else:
+        return Response({
+            "data": None,
+            "message": "Enfant ou appareil introuvable",
+            "success": False,
+            "code": 404
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    if not location:
+        return Response({
+            "data": None,
+            "message": "Veuillez attendre la première localisation avant d'activer un périmètre",
+            "success": False,
+            "code": 404
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    distance = calculer_distance(
+        perimetre.latitude,
+        perimetre.longitude,
+        float(location.latitude),
+        float(location.longitude)
+    )
+
+    if distance > perimetre.rayon:
+        return Response({
+            "data": None,
+            "message": "Impossible d'activer ce périmètre car l'enfant est déjà hors de la zone.",
+            "success": False,
+            "code": 400
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    return True
+
 # Lister les perimetre de securité d'un parent vec les enfant 
 class ParentPerimetreListView(generics.ListAPIView):
     def get(self, request, slug, *args, **kwargs):

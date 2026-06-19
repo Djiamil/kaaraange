@@ -1,7 +1,6 @@
 import random
 import string
 from django.conf import settings
-from api import child
 from api.models import *
 import requests
 from rest_framework.response import Response
