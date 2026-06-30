@@ -86,7 +86,7 @@ def send_sms(to_phone_number, text):
 #     response = messaging.send(message)
 #     print('✅ Successfully sent message:', response)
 
-def send_simple_notification(token, text, sound="warning_sound"):
+def send_simple_notification(token, text, sound="warning_sound", channel_id="warning_channel_v2"):
     message = messaging.Message(
         token=token,
         notification=messaging.Notification(
@@ -97,13 +97,13 @@ def send_simple_notification(token, text, sound="warning_sound"):
             priority="high",
             notification=messaging.AndroidNotification(
                 sound=sound,
-                channel_id="warning_channel"
+                channel_id=channel_id
             ),
         ),
         apns=messaging.APNSConfig(
             payload=messaging.APNSPayload(
                 aps=messaging.Aps(
-                    sound=f"{sound}.aiff"
+                    sound=sound
                 )
             )
         ),
@@ -200,7 +200,7 @@ def verifier_enfant_dans_zone(slug, lat_enfant, lon_enfant,adresse):
                                 if parent.fcm_token:
                                     token = parent.fcm_token
                                     try:
-                                        send_simple_notification(token,text,"warning_sound")
+                                        send_simple_notification(token,text,"warning_sound", "warning_channel_v2")
                                     except Exception as e:
                                         print(f"Erreur lors de l'envoi de la notification à {parent}: {e}")
                                 AlertNotification.objects.create(alert=alert, type_notification='alerte', parent=parent)
@@ -240,7 +240,7 @@ def verifier_enfant_dans_zone(slug, lat_enfant, lon_enfant,adresse):
                             if parent.fcm_token:
                                 token = parent.fcm_token
                                 try:
-                                    send_simple_notification(token, text, "warning_sound")
+                                    send_simple_notification(token, text, "warning_sound", "warning_channel_v2")
                                 except Exception as e:
                                     print(f"Erreur lors de l'envoi de la notification à {parent}: {e}")
                             AlertNotification.objects.create(alert=alert, type_notification='alerte', parent=parent)

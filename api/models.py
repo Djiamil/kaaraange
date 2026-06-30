@@ -116,6 +116,15 @@ class Child(User):
     ecole = models.CharField(max_length=100, blank=True, null=True)
     battery_level = models.IntegerField(default=100, help_text="Niveau de batterie en pourcentage (0-100)")
     hors_zone = models.BooleanField(default=False)
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ("DRAFT", "Draft"),
+            ("ACTIVE", "Active"),
+            ("EXPIRED", "Expired"),
+        ],
+        default="DRAFT"
+    )
 
     date_sortie_zone = models.DateTimeField(
         null=True,
