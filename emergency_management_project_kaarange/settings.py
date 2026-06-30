@@ -31,7 +31,7 @@ SECRET_KEY = 'lku^4@h1l!6rj8($a00zb18pj^)kd^8m34s7_c4w$1zy(3%@2l'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["3.84.229.155", "localhost", "127.0.0.1"]
+ALLOWED_HOSTS = ["api.kaaraange.org","3.84.229.155", "localhost", "127.0.0.1"]
 
 
 # Application definition
@@ -178,12 +178,13 @@ ENCRYPTION_KEY = b'4mJ9KkY3vH7wQp2Lx8NcTzR5UvB1aSdEfGhIjKlMnO0='
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
     "http://3.84.229.155:5173",
-    "http://backoffice.kaaraange.org",
+    "https://api.kaaraange.org",
+    "https://backoffice.kaaraange.org",
 ]
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
-    "http://backoffice.kaaraange.org",
+    "https://backoffice.kaaraange.org",
 ]
 
 CORS_ALLOW_HEADERS = [
@@ -220,3 +221,7 @@ SPECTACULAR_SETTINGS = {
 
     'COMPONENT_SPLIT_REQUEST': True,
 }
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
