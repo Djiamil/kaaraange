@@ -552,7 +552,7 @@ class SendAlertAllEmergenctContactForParentToChild(generics.RetrieveAPIView):
                         token =parent.fcm_token
                         text = f"Vous avez reçu une alerte de votre enfant {device.prenom} {device.nom}."
                         try :
-                            send_simple_notification(token,text,"warning_sound")
+                            send_simple_notification(token,text,"warning_sound", "warning_channel_v2")
                         except Exception as e:  # Capturer toutes les exceptions
                             print(f"Erreur lors de l'envoi de la notification à {parent}: {e}")
                     AlertNotification.objects.create(alert=alert,type_notification='alerte', parent=parent)
@@ -587,7 +587,7 @@ class SendAlertAllEmergenctContactForParentToChild(generics.RetrieveAPIView):
                             token =parent.fcm_token
                             text = f"Vous avez reçu une alerte de votre enfant {child.prenom} {child.nom}."
                             try :
-                                send_simple_notification(token,text,"warning_sound")
+                                send_simple_notification(token,text,"warning_sound", "warning_channel_v2")
                             except Exception as e:  # Capturer toutes les exceptions
                                 print(f"Erreur lors de l'envoi de la notification à {parent}: {e}")
                         AlertNotification.objects.create(alert=alert,type_notification='alerte', parent=parent)
@@ -1197,9 +1197,11 @@ def checChildIsInPerimetre(child_slug, perimetre):
 
     if child:
         location = Location.objects.filter(enfant=child).last()
+        text = f"Alerte importante : Votre enfant {child.prenom} est sorti de sa zone de sécurité. Nous vous invitons à agir rapidement pour vous assurer qu'il est en sécurité. Si cette situation persiste, une autre alerte sera envoyée dans 5 minutes."
 
     elif device:
         location = Location.objects.filter(device=device).last()
+        text = f"Alerte importante : Votre enfant {device.prenom} est sorti de sa zone de sécurité. Nous vous invitons à agir rapidement pour vous assurer qu'il est en sécurité. Si cette situation persiste, une autre alerte sera envoyée dans 5 minutes."
 
     else:
         return Response({
@@ -1225,12 +1227,32 @@ def checChildIsInPerimetre(child_slug, perimetre):
     )
 
     if distance > perimetre.rayon:
-        return Response({
-            "data": None,
-            "message": "Impossible d'activer ce périmètre car l'enfant est déjà hors de la zone.",
-            "success": False,
-            "code": 400
-        }, status=status.HTTP_400_BAD_REQUEST)
+        alert = EmergencyAlert.objects.create(
+                child=child,
+                alert_type="danger",
+                comment=text,
+                latitude=location.latitude,
+                longitude=location.longitude,
+                adresse=location.adresse
+            )
+        # Envoi des notifications aux membres de la famille et contacts d'urgence
+        family_members = FamilyMember.objects.filter(child=child)
+        emergency_contacts = []
+        for family_member in family_members:
+            parent = family_member.parent
+            if parent:
+                contacts = EmergencyContact.objects.filter(parent=parent)
+                for contact in contacts:
+                    emergency_contacts.append(contact)
+                if parent.fcm_token:
+                    token = parent.fcm_token
+                    try:
+                        send_simple_notification(token,text,"warning_sound", "warning_channel_v2")
+                    except Exception as e:
+                        print(f"Erreur lors de l'envoi de la notification à {parent}: {e}")
+                AlertNotification.objects.create(alert=alert, type_notification='alerte', parent=parent)
+        for contact in emergency_contacts:
+            send_sms(contact.phone_number, text)
 
     return True
 

@@ -29,6 +29,7 @@ from safedelete.models import HARD_DELETE
 
 
 
+
 # la views pour creer le Child temporelement en attendant qu'il valide otp cette procedre est remplacer par le oveau flow qui fait qe c'est le parent qui inscris l'enfant 
 class RegisterChild(generics.CreateAPIView):
     queryset = PendingUser.objects.all()
@@ -571,13 +572,21 @@ class parentResisterChild(generics.RetrieveAPIView):
     serializers_class = ChildSerializer
     queryset = Child.objects.all()
     def post(self, request, *args, **kwargs):
+        cleanup_draft_children()
         child = Child.objects.create(
             date_de_naissance = timezone.now().date(),
             user_type = 'CHILD',
             is_active = False
         )
         return Response({'data': ChildSerializer(child).data, 'message': "Veillez renseignez les information de l'enfant", 'success': True, 'code': 200}, status=status.HTTP_200_OK)
+def cleanup_draft_children():
+    threshold = timezone.now() - timedelta(hours=24)
 
+    for child in Child.objects.filter(
+        status="DRAFT",
+        created_at__lt=threshold
+    ):
+        child.delete(force_policy=HARD_DELETE)
 # La nouvelle methode pour valider la creation du compte de lenfant par le parent
 class ParentValidateChildDataAndLink(generics.RetrieveAPIView):
     serializer_class = ChildSerializer
@@ -652,6 +661,7 @@ class ParentValidateChildDataAndLink(generics.RetrieveAPIView):
             # Sauvegarde de l'enfant et mot de passe
             serializer.save()
             child.is_active = True
+            child.status = "ACTIVE"
             password = request.data.get('password', '')
             if password:
                 child.password = make_password(password)
